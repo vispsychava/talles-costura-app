@@ -102,7 +102,28 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
       MaterialPageRoute(
         builder: (_) => PedidosScreen(
           pedidos: results.isEmpty ? _pedidos : results,
-          onNavigate: (pantalla, [pedidoId]) {},
+          onNavigate: (pantalla, [pedidoId]) {
+
+   if (pantalla == 'status_management' && pedidoId != null) {
+    print('🔍 Buscando pedido: $pedidoId');
+    print('🔍 IDs disponibles: ${_pedidos.map((p) => p.id).toList()}');
+    final pedido = _pedidos.firstWhere(
+      (p) => p.id == pedidoId,
+      orElse: () => _pedidos.first,
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DetallePedidoScreen(
+          pedido: pedido,
+          onPedidoActualizado: (pedidoActualizado) {
+            _guardarPedido(pedidoActualizado.toJson());
+          },
+        ),
+      ),
+    );
+  }
+},
           filtroInicial: 'Todos',
           estantes: _estantes,
           onGuardarPedido: _guardarPedido,
@@ -129,7 +150,27 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
       MaterialPageRoute(
         builder: (_) => PedidosScreen(
           pedidos: _pedidos,
-          onNavigate: (pantalla, [pedidoId]) {},
+          onNavigate: (pantalla, [pedidoId]) {
+ if (pantalla == 'status_management' && pedidoId != null) {
+    print('🔍 Buscando pedido: $pedidoId');
+    print('🔍 IDs disponibles: ${_pedidos.map((p) => p.id).toList()}');
+    final pedido = _pedidos.firstWhere(
+      (p) => p.id == pedidoId,
+      orElse: () => _pedidos.first,
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DetallePedidoScreen(
+          pedido: pedido,
+          onPedidoActualizado: (pedidoActualizado) {
+            _guardarPedido(pedidoActualizado.toJson());
+          },
+        ),
+      ),
+    );
+  }
+},
           filtroInicial: 'Todos',
           estantes: _estantes,
           onGuardarPedido: _guardarPedido,
@@ -314,7 +355,27 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
       MaterialPageRoute(
         builder: (_) => PedidosScreen(
           pedidos: _pedidos,
-          onNavigate: (pantalla, [pedidoId]) {},
+          onNavigate: (pantalla, [pedidoId]) {
+  if (pantalla == 'status_management' && pedidoId != null) {
+    print('🔍 Buscando pedido: $pedidoId');
+    print('🔍 IDs disponibles: ${_pedidos.map((p) => p.id).toList()}');
+    final pedido = _pedidos.firstWhere(
+      (p) => p.id == pedidoId,
+      orElse: () => _pedidos.first,
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DetallePedidoScreen(
+          pedido: pedido,
+          onPedidoActualizado: (pedidoActualizado) {
+            _guardarPedido(pedidoActualizado.toJson());
+          },
+        ),
+      ),
+    );
+  }
+},
           filtroInicial: filtro,
           estantes: _estantes,
           onGuardarPedido: _guardarPedido,
@@ -683,7 +744,25 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                                 MaterialPageRoute(
                                   builder: (_) => PedidosScreen(
                                     pedidos: _pedidos,
-                                    onNavigate: (pantalla, [pedidoId]) {},
+                                    onNavigate: (pantalla, [pedidoId]) {
+  if (pantalla == 'status_management' && pedidoId != null) {
+    final pedido = _pedidos.firstWhere(
+      (p) => p.id == pedidoId,
+      orElse: () => _pedidos.first,
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DetallePedidoScreen(
+          pedido: pedido,
+          onPedidoActualizado: (pedidoActualizado) {
+            _guardarPedido(pedidoActualizado.toJson());
+          },
+        ),
+      ),
+    );
+  }
+},
                                     estantes: _estantes,
                                     onGuardarPedido: _guardarPedido,
                                     onRefresh: () {

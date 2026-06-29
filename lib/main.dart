@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:talles_costura_app/services/recordatorio_service.dart';
 import 'config/supabase_config.dart';  // ✅ Importar la configuración
 import 'screens/panel_principal_screen.dart';
 import 'services/supabase_service.dart';
@@ -12,6 +13,7 @@ void main() async {
 
   // ✅ Usar SupabaseConfig en lugar de inicializar directamente
   await SupabaseConfig.initialize();
+   await NotificationService().init();
 
   runApp(const TallerCosturaApp());
 }
@@ -28,10 +30,14 @@ class TallerCosturaApp extends StatelessWidget {
         supabaseService.obtenerRecordatorios(),
         supabaseService.obtenerEstantes(),
       ]);
+     final pedidos = listas[0] as List<Pedido>;
+
+    
+    await NotificationService().reprogramarDesdePedidos(pedidos);
 
       return {
         'pedidos': listas[0],
-        'recordatorios': listas[1],
+        'recordatorios': listas[1], 
         'estantes': listas[2],
       };
     } catch (e) {

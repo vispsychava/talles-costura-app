@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:talles_costura_app/services/recordatorio_service.dart';
 import '../models/recordatorio.dart';
 import '../models/pedido.dart';
 import 'nuevo_pedido_screen.dart';
@@ -99,7 +100,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
     return todosItems;
   }
 
-  void enviarRecordatorio() {
+  void enviarRecordatorio() async {
     if (tareaController.text.trim().isEmpty ||
         clienteController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -125,6 +126,15 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
       tareaController.text,
       clienteController.text,
     );
+
+  final nuevoRecordatorio = Recordatorio(
+    id: DateTime.now().millisecondsSinceEpoch.toString(),
+    titulo: tareaController.text,
+    pedidoId: clienteController.text,
+    fechaRecordatorio: _fechaSeleccionada!,
+    completado: false,
+    fechaCreacion: DateTime.now(),
+  );
 
     tareaController.clear();
     clienteController.clear();

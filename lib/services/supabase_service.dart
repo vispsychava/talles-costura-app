@@ -71,7 +71,7 @@ class SupabaseService {
         }
 
         return Pedido(
-          id: json['id_pedido']?.toString() ?? '0',
+          id: json['codigo_pedido']?.toString() ?? json['id_pedido']?.toString() ?? '0',
           clienteNombre: json['nombre_cliente'] ?? '',
           clienteTelefono: json['telefono'] ?? '',
           clienteEmail: json['email'] ?? '',

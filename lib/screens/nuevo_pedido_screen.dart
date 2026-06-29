@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:talles_costura_app/services/recordatorio_service.dart';
 import '../models/estante.dart';
 import '../services/supabase_service.dart';
 
@@ -904,6 +905,11 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                         if (!context.mounted) return;
 
                         if (exito) {
+                            await NotificationService().scheduleNotificacionPedido(
+                            pedidoId: id,
+                            titulo: '${tipoPrenda.toUpperCase()} - ${clienteNombreController.text.trim()}',
+                            fechaEntrega: fechaEntrega,
+                          );
                           widget.onGuardarPedido(nuevoPedido);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(

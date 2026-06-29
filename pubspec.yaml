@@ -28,6 +28,13 @@ dependencies:
   # Imágenes
   image_picker: ^1.1.0
 
+    #  Notificaciones locales
+  flutter_local_notifications: ^18.0.0
+  
+  #  Zonas horarias
+  timezone: ^0.9.4
+
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -38,6 +45,6 @@ flutter:
   uses-material-design: true
 
   # Assets
-  assets:
-    - assets/images/
-    - assets/icons/
+ # assets:
+  #  - assets/images/
+  #  - assets/icons/

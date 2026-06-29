@@ -738,18 +738,19 @@ class _PedidosScreenState extends State<PedidosScreen> {
                                         children: [
                                           Expanded(
                                             child: ElevatedButton(
-                                              onPressed: () {
-                                                if (pedido.estado == 'Terminado') {
-                                                  showToast(
-                                                    "Notificación enviada a ${pedido.clienteNombre}",
-                                                  );
-                                                } else {
-                                                  widget.onNavigate(
-                                                    'status_management',
-                                                    pedido.id,
-                                                  );
-                                                }
-                                              },
+                                             onPressed: () {
+  print('🔍 Navegando con pedidoId: ${pedido.id}');
+  if (pedido.estado == 'Terminado') {
+    showToast(
+      "Notificación enviada a ${pedido.clienteNombre}",
+    );
+  } else {
+    widget.onNavigate(
+      'status_management',
+      pedido.id,
+    );
+  }
+},
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor: isEnProceso
                                                     ? const Color(0xFF8B5CF6)
