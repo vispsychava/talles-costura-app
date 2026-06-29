@@ -240,7 +240,13 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return "Campo obligatorio";
+                          return "El nombre es obligatorio";
+                        }
+                        if (value.length < 3) {
+                          return "El nombre debe tener al menos 3 caracteres";
+                        }
+                        if (!RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$').hasMatch(value)) {
+                          return "Solo letras y espacios";
                         }
                         return null;
                       },
@@ -257,6 +263,15 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                               color: Color(0xff102A43),
                             ),
                             keyboardType: TextInputType.phone,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return "El teléfono es obligatorio";
+                              }
+                              if (!RegExp(r'^[0-9]{10,15}$').hasMatch(value)) {
+                                return "Ingresa un teléfono válido (10-15 dígitos)";
+                              }
+                              return null;
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -269,6 +284,17 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                               color: Color(0xff102A43),
                             ),
                             keyboardType: TextInputType.emailAddress,
+                            validator: (value) {
+                              // ✅ CAMPO OPCIONAL - Si está vacío, es válido
+                              if (value == null || value.isEmpty) {
+                                return null;
+                              }
+                              // ✅ Si tiene algo, validar formato de email
+                              if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(value)) {
+                                return "Ingresa un correo válido (ejemplo@dominio.com)";
+                              }
+                              return null;
+                            },
                           ),
                         ),
                       ],
@@ -323,7 +349,6 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                           return DropdownMenuItem(
                             value: estante.id,
                             child: Text(
-                             
                               "${estante.id} (${estante.ocupados}/${estante.capacidad}) - $remaining espacios disponibles",
                               style: const TextStyle(
                                 fontSize: 15,
@@ -575,6 +600,17 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                         color: Color(0xff102A43),
                       ),
                       minLines: 3,
+                      validator: (value) {
+                        // ✅ CAMPO OPCIONAL - Si está vacío, es válido
+                        if (value == null || value.isEmpty) {
+                          return null;
+                        }
+                        // ✅ Si tiene algo, validar longitud mínima
+                        if (value.length < 10) {
+                          return "La descripción debe tener al menos 10 caracteres";
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -584,6 +620,19 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                         fontSize: 16,
                         color: Color(0xff102A43),
                       ),
+                      validator: (value) {
+                        // ✅ CAMPO OPCIONAL - Si está vacío, es válido
+                        if (value == null || value.isEmpty) {
+                          return null;
+                        }
+                        // ✅ Si tiene algo, validar tallas comunes
+                        final tallasValidas = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+                        final tallaMayus = value.toUpperCase().trim();
+                        if (!tallasValidas.contains(tallaMayus) && !RegExp(r'^[0-9]+$').hasMatch(value)) {
+                          return "Ingresa una talla válida (XS, S, M, L, XL, XXL, XXXL o número)";
+                        }
+                        return null;
+                      },
                     ),
                   ],
                 ),
@@ -706,6 +755,16 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                                       total = double.tryParse(value) ?? 0;
                                       calcularSaldo();
                                     },
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return "El costo total es obligatorio";
+                                      }
+                                      final doubleVal = double.tryParse(value);
+                                      if (doubleVal == null || doubleVal <= 0) {
+                                        return "Ingresa un monto válido mayor a 0";
+                                      }
+                                      return null;
+                                    },
                                   ),
                                 ),
                               ],
@@ -754,6 +813,16 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                                     onChanged: (value) {
                                       anticipo = double.tryParse(value) ?? 0;
                                       calcularSaldo();
+                                    },
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return "El anticipo es obligatorio";
+                                      }
+                                      final doubleVal = double.tryParse(value);
+                                      if (doubleVal == null || doubleVal < 0) {
+                                        return "Ingresa un monto válido";
+                                      }
+                                      return null;
                                     },
                                   ),
                                 ),
@@ -905,7 +974,7 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                         if (!context.mounted) return;
 
                         if (exito) {
-                            await NotificationService().scheduleNotificacionPedido(
+                          await NotificationService().scheduleNotificacionPedido(
                             pedidoId: id,
                             titulo: '${tipoPrenda.toUpperCase()} - ${clienteNombreController.text.trim()}',
                             fechaEntrega: fechaEntrega,
@@ -998,6 +1067,16 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
         fontSize: 13,
         color: Color(0xff102A43),
       ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return null; // Campo opcional
+        }
+        final doubleVal = double.tryParse(value);
+        if (doubleVal == null || doubleVal <= 0) {
+          return "Ingresa un valor válido";
+        }
+        return null;
+      },
     );
   }
 

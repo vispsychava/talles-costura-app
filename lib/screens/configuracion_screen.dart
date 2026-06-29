@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
 class ConfiguracionScreen extends StatelessWidget {
-  final VoidCallback? onCerrarSesion;
-
   const ConfiguracionScreen({
     super.key,
-    this.onCerrarSesion,
   });
 
   void _mostrarMensaje(BuildContext context, String label) {
@@ -57,7 +54,7 @@ class ConfiguracionScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 15,
                     offset: const Offset(0, 4),
                   ),
@@ -121,10 +118,10 @@ class ConfiguracionScreen extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xff6D3EFF).withOpacity(.08),
+                          color: const Color(0xff6D3EFF).withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: const Color(0xff6D3EFF).withOpacity(.2),
+                            color: const Color(0xff6D3EFF).withValues(alpha: 0.2),
                           ),
                         ),
                         child: Row(
@@ -194,7 +191,7 @@ class ConfiguracionScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 15,
                     offset: const Offset(0, 4),
                   ),
@@ -245,21 +242,7 @@ class ConfiguracionScreen extends StatelessWidget {
                       "Acerca de la Aplicación",
                     ),
                   ),
-                  const Divider(height: 1, indent: 16, endIndent: 16),
-                  _itemConfiguracion(
-                    context,
-                    icon: Icons.logout,
-                    titulo: "Cerrar Sesión",
-                    subtitulo: "Salir de la aplicación",
-                    onTap: () {
-                      if (onCerrarSesion != null) {
-                        onCerrarSesion!();
-                      } else {
-                        _mostrarMensaje(context, "Cerrar Sesión");
-                      }
-                    },
-                    isDanger: true,
-                  ),
+                  // ✅ ELIMINADO: Cerrar Sesión
                 ],
               ),
             ),
@@ -275,10 +258,9 @@ class ConfiguracionScreen extends StatelessWidget {
     required String titulo,
     required String subtitulo,
     required VoidCallback onTap,
-    bool isDanger = false,
   }) {
-    final color = isDanger ? Colors.red : const Color(0xff6D3EFF);
-    final bgColor = isDanger ? Colors.red.withOpacity(.08) : color.withOpacity(.08);
+    final color = const Color(0xff6D3EFF);
+    final bgColor = color.withValues(alpha: 0.08);
 
     return ListTile(
       leading: Container(
@@ -296,10 +278,10 @@ class ConfiguracionScreen extends StatelessWidget {
       ),
       title: Text(
         titulo,
-        style: TextStyle(
+        style: const TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 16,
-          color: isDanger ? Colors.red : const Color(0xff102A43),
+          color: Color(0xff102A43),
         ),
       ),
       subtitle: Text(
@@ -309,9 +291,9 @@ class ConfiguracionScreen extends StatelessWidget {
           color: Color(0xff64748B),
         ),
       ),
-      trailing: Icon(
+      trailing: const Icon(
         Icons.chevron_right,
-        color: isDanger ? Colors.red.shade300 : const Color(0xff829AB1),
+        color: Color(0xff829AB1),
       ),
       onTap: onTap,
     );

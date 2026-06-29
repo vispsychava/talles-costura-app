@@ -86,7 +86,7 @@ class _AgregarEstanteScreenState extends State<AgregarEstanteScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    /// Código del Estante (UNICO)
+                    /// Código del Estante (ÚNICO)
                     TextFormField(
                       controller: _codigoController,
                       decoration: InputDecoration(
@@ -128,7 +128,19 @@ class _AgregarEstanteScreenState extends State<AgregarEstanteScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return "Ingresa un código para el estante";
+                          return "El código es obligatorio";
+                        }
+                        // ✅ Solo letras, números y guiones
+                        if (!RegExp(r'^[a-zA-Z0-9\-]+$').hasMatch(value)) {
+                          return "Solo letras, números y guiones";
+                        }
+                        // ✅ Mínimo 2 caracteres
+                        if (value.length < 2) {
+                          return "El código debe tener al menos 2 caracteres";
+                        }
+                        // ✅ Máximo 10 caracteres
+                        if (value.length > 10) {
+                          return "El código no puede tener más de 10 caracteres";
                         }
                         return null;
                       },
@@ -178,7 +190,19 @@ class _AgregarEstanteScreenState extends State<AgregarEstanteScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return "Ingresa una descripción para el estante";
+                          return "La descripción es obligatoria";
+                        }
+                        // ✅ Mínimo 3 caracteres
+                        if (value.length < 3) {
+                          return "La descripción debe tener al menos 3 caracteres";
+                        }
+                        // ✅ Máximo 100 caracteres
+                        if (value.length > 100) {
+                          return "La descripción no puede tener más de 100 caracteres";
+                        }
+                        // ✅ Solo letras, números, espacios y caracteres básicos
+                        if (!RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\-.,]+$').hasMatch(value)) {
+                          return "Solo letras, números y espacios";
                         }
                         return null;
                       },
@@ -234,10 +258,31 @@ class _AgregarEstanteScreenState extends State<AgregarEstanteScreen> {
                         final codigo = _codigoController.text.toUpperCase().trim();
                         final descripcion = _descripcionController.text.trim();
 
+                        // ✅ Verificar que el código no esté duplicado
+                        try {
+                          final existing = await Supabase.instance.client
+                              .from('estantes')
+                              .select('codigo')
+                              .eq('codigo', codigo)
+                              .maybeSingle();
+
+                          if (existing != null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Ya existe un estante con este código'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            return;
+                          }
+                        } catch (e) {
+                          print('Error al verificar duplicado: $e');
+                        }
+
                         print('Intentando guardar estante: codigo=$codigo, descripcion=$descripcion');
 
                         try {
-                          // Guardar en Supabase - SOLO con los campos que tiene la tabla
+                          // Guardar en Supabase
                           final response = await Supabase.instance.client.from('estantes').insert({
                             'codigo': codigo,
                             'descripcion': descripcion,
@@ -245,9 +290,8 @@ class _AgregarEstanteScreenState extends State<AgregarEstanteScreen> {
 
                           print('Estante guardado en Supabase: $response');
 
-                          
                           final nuevoEstante = Estante(
-                            id: codigo,  
+                            id: codigo,
                             nombre: descripcion,
                             ubicacion: null,
                             descripcion: descripcion,
@@ -268,7 +312,7 @@ class _AgregarEstanteScreenState extends State<AgregarEstanteScreen> {
                             ),
                           );
                         } catch (e) {
-                          print(' Error en Supabase: $e');
+                          print('❌ Error en Supabase: $e');
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(

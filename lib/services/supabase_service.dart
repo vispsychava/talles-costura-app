@@ -9,6 +9,11 @@ import '../models/prenda.dart';
 class SupabaseService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  /// ============================================================
+  /// PEDIDOS (tabla: pedidos)
+  /// ============================================================
+
+  /// Obtener todos los pedidos
   Future<List<Pedido>> obtenerPedidos() async {
     try {
       final response = await _supabase
@@ -21,7 +26,7 @@ class SupabaseService {
           .order('fecha_registro', ascending: false);
 
       if (response is! List) {
-        print(' La respuesta no es una lista: ${response.runtimeType}');
+        print('⚠️ La respuesta no es una lista: ${response.runtimeType}');
         return [];
       }
 
@@ -71,7 +76,7 @@ class SupabaseService {
         }
 
         return Pedido(
-          id: json['codigo_pedido']?.toString() ?? json['id_pedido']?.toString() ?? '0',
+          id: json['id_pedido']?.toString() ?? '0',
           clienteNombre: json['nombre_cliente'] ?? '',
           clienteTelefono: json['telefono'] ?? '',
           clienteEmail: json['email'] ?? '',
@@ -107,12 +112,30 @@ class SupabaseService {
   /// Insertar un nuevo pedido
   Future<bool> insertarPedido(Map<String, dynamic> pedidoData) async {
     try {
-      final estanteId = int.tryParse(pedidoData['shelfAssignment']?.toString() ?? '0') ?? 0;
+      // ✅ Buscar el id_estante por su código
+      final codigoEstante = pedidoData['shelfAssignment']?.toString() ?? '';
       
-      if (estanteId == 0) {
-        print('Estante no válido: ${pedidoData['shelfAssignment']}');
+      if (codigoEstante.isEmpty) {
+        print('❌ Código de estante vacío');
         return false;
       }
+
+      print('🔍 Buscando estante con código: $codigoEstante');
+
+      // Buscar el estante por su código
+      final estanteResponse = await _supabase
+          .from('estantes')
+          .select('id_estante')
+          .eq('codigo', codigoEstante)
+          .maybeSingle();
+
+      if (estanteResponse == null) {
+        print('❌ Estante no encontrado con código: $codigoEstante');
+        return false;
+      }
+
+      final int idEstante = estanteResponse['id_estante'];
+      print('✅ Estante encontrado: id_estante=$idEstante');
 
       final response = await _supabase.from('pedidos').insert({
         'codigo_pedido': pedidoData['id'] ?? 'PED-${DateTime.now().millisecondsSinceEpoch}',
@@ -127,21 +150,26 @@ class SupabaseService {
         'fecha_registro': pedidoData['statusDate'] ?? DateTime.now().toIso8601String(),
         'fecha_entrega': pedidoData['expectedDeliveryDate'] ?? 
             DateTime.now().add(const Duration(days: 7)).toIso8601String().substring(0, 10),
-        'id_estante': estanteId,
+        'id_estante': idEstante,  // ✅ Usar el id_estante numérico
         'prioridad': pedidoData['priority'] ?? 'Media',
         'tipo_prenda': pedidoData['garmentType'] ?? 'vestido',
         'talla': pedidoData['size'] ?? 'M',
       }).select();
 
-      print('Pedido insertado correctamente: $response');
+      print('✅ Pedido insertado correctamente: $response');
       return true;
     } catch (e) {
-      print('Error en insertarPedido: $e');
-      print('Datos del pedido: $pedidoData');
+      print('❌ Error en insertarPedido: $e');
+      print('📦 Datos del pedido: $pedidoData');
       return false;
     }
   }
 
+  /// ============================================================
+  /// ESTANTES (tabla: estantes)
+  /// ============================================================
+
+  /// Obtener todos los estantes
   Future<List<Estante>> obtenerEstantes() async {
     try {
       final response = await _supabase
@@ -150,7 +178,7 @@ class SupabaseService {
           .order('codigo', ascending: true);
 
       if (response is! List) {
-        print(' La respuesta no es una lista: ${response.runtimeType}');
+        print('⚠️ La respuesta no es una lista: ${response.runtimeType}');
         return [];
       }
 
@@ -178,6 +206,11 @@ class SupabaseService {
     }
   }
 
+  /// ============================================================
+  /// RECORDATORIOS (tabla: recordatorios)
+  /// ============================================================
+
+  /// Obtener todos los recordatorios
   Future<List<Recordatorio>> obtenerRecordatorios() async {
     try {
       final response = await _supabase
@@ -186,7 +219,7 @@ class SupabaseService {
           .order('fecha_recordatorio', ascending: true);
 
       if (response is! List) {
-        print(' La respuesta no es una lista: ${response.runtimeType}');
+        print('⚠️ La respuesta no es una lista: ${response.runtimeType}');
         return [];
       }
 
@@ -214,6 +247,11 @@ class SupabaseService {
     }
   }
 
+  /// ============================================================
+  /// MEDIDAS (tabla: medidas_pedido)
+  /// ============================================================
+
+  /// Obtener medidas de un pedido
   Future<List<Medida>> obtenerMedidasPorPedido(String pedidoId) async {
     try {
       final response = await _supabase
@@ -223,7 +261,7 @@ class SupabaseService {
           .order('tipo_medida', ascending: true);
 
       if (response is! List) {
-        print('La respuesta no es una lista: ${response.runtimeType}');
+        print('⚠️ La respuesta no es una lista: ${response.runtimeType}');
         return [];
       }
 
