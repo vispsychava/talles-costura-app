@@ -163,6 +163,7 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
   }
 
 void _registrarPago(double monto) async {
+   print(' Registrando pago para pedido ID: ${_pedidoActual.id}');
   if (monto <= 0) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -284,6 +285,7 @@ void _registrarPago(double monto) async {
   }
 
   void _actualizarEstado(String nuevoEstado) async {
+     print(' Actualizando pedido ID: ${_pedidoActual.id} → $nuevoEstado');
   if (nuevoEstado == _pedidoActual.estado) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

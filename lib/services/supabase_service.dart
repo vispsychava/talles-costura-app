@@ -76,7 +76,7 @@ class SupabaseService {
         }
 
         return Pedido(
-          id: json['id_pedido']?.toString() ?? '0',
+          id: json['codigo_pedido']?.toString() ?? json['id_pedido']?.toString() ?? '0',  
           clienteNombre: json['nombre_cliente'] ?? '',
           clienteTelefono: json['telefono'] ?? '',
           clienteEmail: json['email'] ?? '',
@@ -94,7 +94,7 @@ class SupabaseService {
               : null,
           medidas: medidas,
           prendas: prendas,
-          titulo: json['codigo_pedido'] ?? 'Pedido',
+          titulo: '${json['tipo_prenda'] ?? 'Pedido'} - ${json['nombre_cliente'] ?? ''}', 
           estanteId: json['id_estante']?.toString(),
           prioridad: json['prioridad'] ?? 'Media',
           tipoPrenda: json['tipo_prenda'] ?? 'vestido',

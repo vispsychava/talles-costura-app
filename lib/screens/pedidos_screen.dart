@@ -745,9 +745,24 @@ class _PedidosScreenState extends State<PedidosScreen> {
       "Notificación enviada a ${pedido.clienteNombre}",
     );
   } else {
-    widget.onNavigate(
-      'status_management',
-      pedido.id,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DetallePedidoScreen(
+          pedido: pedido,
+          onPedidoActualizado: (pedidoActualizado) {
+            setState(() {
+              final index = _localPedidos.indexWhere((o) => o.id == pedidoActualizado.id);
+              if (index != -1) {
+                _localPedidos[index] = pedidoActualizado;
+                _refreshCounter++;
+              }
+            });
+            widget.onGuardarPedido(pedidoActualizado.toJson());
+            widget.onRefresh();
+          },
+        ),
+      ),
     );
   }
 },
