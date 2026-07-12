@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:talles_costura_app/services/recordatorio_service.dart';
 import '../models/estante.dart';
 import '../services/supabase_service.dart';
@@ -97,9 +98,17 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
   @override
   void initState() {
     super.initState();
+
     if (_estantesDisponibles.isNotEmpty) {
       estanteAsignado = _estantesDisponibles.first.id;
     }
+
+    final now = DateTime.now();
+    fechaEntrega = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    );
   }
 
   void calcularSaldo() {
@@ -198,6 +207,235 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
     );
   }
 
+  Widget _calendarioPersonalizado({
+    required DateTime mesActual,
+    required Function(DateTime) onDateSelected,
+    required DateTime fechaSeleccionada,
+    required Function(DateTime) onMesCambiado,
+  }) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    final year = mesActual.year;
+    final month = mesActual.month;
+    
+    final firstDay = DateTime(year, month, 1);
+    final firstDayWeekday = firstDay.weekday;
+    
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+    
+    final prevMonth = month == 1 ? 12 : month - 1;
+    final prevYear = month == 1 ? year - 1 : year;
+    final daysInPrevMonth = DateTime(prevYear, prevMonth + 1, 0).day;
+    
+    final prevMonthDays = List.generate(
+      firstDayWeekday - 1,
+      (index) => daysInPrevMonth - (firstDayWeekday - 2) + index,
+    );
+    
+    final currentMonthDays = List.generate(daysInMonth, (index) => index + 1);
+    
+    final totalDays = prevMonthDays.length + currentMonthDays.length;
+    final remainingDays = (7 - totalDays % 7) % 7;
+    final nextMonthDays = List.generate(remainingDays, (index) => index + 1);
+    
+    final allDays = [
+      ...prevMonthDays.map((d) => {'day': d, 'isCurrentMonth': false}),
+      ...currentMonthDays.map((d) => {'day': d, 'isCurrentMonth': true}),
+      ...nextMonthDays.map((d) => {'day': d, 'isCurrentMonth': false}),
+    ];
+    
+    List<Widget> rows = [];
+    for (int i = 0; i < allDays.length; i += 7) {
+      final weekDays = allDays.sublist(i, i + 7 > allDays.length ? allDays.length : i + 7);
+      
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: weekDays.map((dayInfo) {
+              final day = dayInfo['day'] as int;
+              final isCurrentMonth = dayInfo['isCurrentMonth'] as bool;
+              
+              int dayMonth = month;
+              int dayYear = year;
+              
+              if (!isCurrentMonth) {
+                if (day > 15) {
+                  dayMonth = month - 1;
+                  if (dayMonth == 0) {
+                    dayMonth = 12;
+                    dayYear = year - 1;
+                  }
+                } else {
+                  dayMonth = month + 1;
+                  if (dayMonth == 13) {
+                    dayMonth = 1;
+                    dayYear = year + 1;
+                  }
+                }
+              }
+              
+              final date = DateTime(dayYear, dayMonth, day);
+              
+              final isToday = date.year == today.year && 
+                             date.month == today.month && 
+                             date.day == today.day;
+              
+              final isSelected = date.year == fechaSeleccionada.year && 
+                                date.month == fechaSeleccionada.month && 
+                                date.day == fechaSeleccionada.day;
+              
+              final isBeforeToday = date.isBefore(today);
+              final isAfterYear = date.isAfter(today.add(const Duration(days: 365)));
+              final isDisabled = isBeforeToday || isAfterYear;
+              
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    if (!isDisabled) {
+                      onDateSelected(date);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected 
+                          ? const Color(0xff6D3EFF)
+                          : isToday && !isSelected
+                              ? const Color(0xff6D3EFF).withValues(alpha: 0.1)
+                              : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        day.toString(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isDisabled
+                              ? Colors.grey.shade300
+                              : isSelected
+                                  ? Colors.white
+                                  : isToday
+                                      ? const Color(0xff6D3EFF)
+                                      : isCurrentMonth
+                                          ? const Color(0xff102A43)
+                                          : Colors.grey.shade400,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      );
+    }
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          // Cabecera con mes y año
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xff6D3EFF),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left, color: Colors.white),
+                  onPressed: () {
+                    final nuevoMes = DateTime(
+                      mesActual.year,
+                      mesActual.month - 1,
+                      1,
+                    );
+                    onMesCambiado(nuevoMes);
+                  },
+                ),
+                Text(
+                  _formatearMesAnio(mesActual),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right, color: Colors.white),
+                  onPressed: () {
+                    final nuevoMes = DateTime(
+                      mesActual.year,
+                      mesActual.month + 1,
+                      1,
+                    );
+                    onMesCambiado(nuevoMes);
+                  },
+                ),
+              ],
+            ),
+          ),
+          
+          // Días de la semana
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: ['L', 'M', 'Mi', 'J', 'V', 'S', 'D'].map((dia) {
+                return Expanded(
+                  child: Center(
+                    child: Text(
+                      dia,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          
+          // Días del mes
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Column(
+              children: rows,
+            ),
+          ),
+          
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  String _formatearMesAnio(DateTime fecha) {
+    final meses = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    return '${meses[fecha.month - 1]} ${fecha.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final estantesDisponibles = _estantesDisponibles;
@@ -285,11 +523,9 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                             ),
                             keyboardType: TextInputType.emailAddress,
                             validator: (value) {
-                              // ✅ CAMPO OPCIONAL - Si está vacío, es válido
                               if (value == null || value.isEmpty) {
                                 return null;
                               }
-                              // ✅ Si tiene algo, validar formato de email
                               if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(value)) {
                                 return "Ingresa un correo válido (ejemplo@dominio.com)";
                               }
@@ -508,7 +744,6 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                       ),
                     ),
 
-                    /// CAMPOS DE MEDIDAS
                     if (_showMeasurements)
                       Container(
                         margin: const EdgeInsets.only(top: 10),
@@ -522,7 +757,6 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                         ),
                         child: Column(
                           children: [
-                            /// PRIMERA FILA (2 columnas)
                             if (camposMedida.length >= 2)
                               Row(
                                 children: [
@@ -541,8 +775,6 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                                   ),
                                 ],
                               ),
-
-                            /// SEGUNDA FILA (si hay más de 2)
                             if (camposMedida.length >= 4)
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),
@@ -564,8 +796,6 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                                   ],
                                 ),
                               ),
-
-                            /// SI SON 3 (Pantalón, Falda, Saco)
                             if (camposMedida.length == 3)
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),
@@ -601,11 +831,9 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                       ),
                       minLines: 3,
                       validator: (value) {
-                        // ✅ CAMPO OPCIONAL - Si está vacío, es válido
                         if (value == null || value.isEmpty) {
                           return null;
                         }
-                        // ✅ Si tiene algo, validar longitud mínima
                         if (value.length < 10) {
                           return "La descripción debe tener al menos 10 caracteres";
                         }
@@ -621,11 +849,9 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                         color: Color(0xff102A43),
                       ),
                       validator: (value) {
-                        // ✅ CAMPO OPCIONAL - Si está vacío, es válido
                         if (value == null || value.isEmpty) {
                           return null;
                         }
-                        // ✅ Si tiene algo, validar tallas comunes
                         final tallasValidas = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
                         final tallaMayus = value.toUpperCase().trim();
                         if (!tallasValidas.contains(tallaMayus) && !RegExp(r'^[0-9]+$').hasMatch(value)) {
@@ -658,54 +884,176 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                       child: Column(
                         children: [
                           InkWell(
-                            onTap: () async {
-                              final date = await showDatePicker(
+                            onTap: () {
+                              DateTime mesActual = DateTime(
+                                fechaEntrega.year,
+                                fechaEntrega.month,
+                                1,
+                              );
+                              DateTime fechaTemp = fechaEntrega;
+                              
+                              showDialog(
                                 context: context,
-                                initialDate: fechaEntrega,
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime.now().add(
-                                  const Duration(days: 365),
+                                barrierDismissible: true,
+                                builder: (context) => StatefulBuilder(
+                                  builder: (context, setStateDialog) {
+                                    return Dialog(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            // Fecha seleccionada
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(vertical: 8),
+                                              child: Text(
+                                                ' ${_formatearFecha(fechaTemp)}',
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xff6D3EFF),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            
+                                            // Calendario
+                                            _calendarioPersonalizado(
+                                              mesActual: mesActual,
+                                              fechaSeleccionada: fechaTemp,
+                                              onDateSelected: (date) {
+                                                setStateDialog(() {
+                                                  fechaTemp = date;
+                                                });
+                                              },
+                                              onMesCambiado: (nuevoMes) {
+                                                setStateDialog(() {
+                                                  mesActual = nuevoMes;
+                                                });
+                                              },
+                                            ),
+                                            
+                                            const SizedBox(height: 16),
+                                            
+                                            // Botones
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                              children: [
+                                                TextButton(
+                                                  onPressed: () {
+                                                    Navigator.pop(context);
+                                                  },
+                                                  child: const Text(
+                                                    'Cancelar',
+                                                    style: TextStyle(
+                                                      color: Colors.grey,
+                                                      fontSize: 16,
+                                                    ),
+                                                  ),
+                                                ),
+                                                ElevatedButton(
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      fechaEntrega = fechaTemp;
+                                                    });
+                                                    Navigator.pop(context);
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          ' ${_formatearFecha(fechaEntrega)}',
+                                                          style: const TextStyle(color: Colors.white),
+                                                        ),
+                                                        backgroundColor: const Color(0xff6D3EFF),
+                                                        duration: const Duration(seconds: 2),
+                                                      ),
+                                                    );
+                                                  },
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: const Color(0xff6D3EFF),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(10),
+                                                    ),
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 32,
+                                                      vertical: 12,
+                                                    ),
+                                                  ),
+                                                  child: const Text(
+                                                    'Aceptar',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 16,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               );
-                              if (date != null) {
-                                setState(() {
-                                  fechaEntrega = date;
-                                });
-                              }
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 vertical: 12,
                               ),
                               child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    "Fecha de Entrega",
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
-                                    ),
-                                  ),
                                   Row(
                                     children: [
-                                      Text(
-                                        "${fechaEntrega.day}/${fechaEntrega.month}/${fechaEntrega.year}",
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xff102A43),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
                                       Icon(
                                         Icons.calendar_today,
-                                        color: Colors.grey.shade600,
-                                        size: 20,
+                                        color: const Color(0xff6D3EFF),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        "Fecha de Entrega",
+                                        style: TextStyle(
+                                          color: Colors.grey.shade700,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 14,
+                                        ),
                                       ),
                                     ],
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xff6D3EFF).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: const Color(0xff6D3EFF).withValues(alpha: 0.2),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          _formatearFecha(fechaEntrega),
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xff6D3EFF),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.arrow_drop_down,
+                                          color: const Color(0xff6D3EFF),
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1069,7 +1417,7 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return null; // Campo opcional
+          return null;
         }
         final doubleVal = double.tryParse(value);
         if (doubleVal == null || doubleVal <= 0) {
@@ -1078,6 +1426,19 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
         return null;
       },
     );
+  }
+
+  String _formatearFecha(DateTime fecha) {
+    final meses = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    final diasSemana = [
+      'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'
+    ];
+    
+    final diaSemana = diasSemana[fecha.weekday - 1];
+    return '$diaSemana ${fecha.day} de ${meses[fecha.month - 1]}';
   }
 
   Widget _opcionPrioridad(String label, IconData icon) {

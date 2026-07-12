@@ -413,14 +413,20 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      estante.nombre,
-                                      style: const TextStyle(
-                                        fontSize: 42,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xff0F172A),
+                                    /// ✅ NOMBRE DEL ESTANTE CON 3 PUNTOS SI ES LARGO
+                                    Expanded(
+                                      child: Text(
+                                        estante.nombre,
+                                        style: const TextStyle(
+                                          fontSize: 42,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xff0F172A),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis, // ✅ 3 PUNTOS
                                       ),
                                     ),
+                                    const SizedBox(width: 8),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
@@ -435,6 +441,7 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
                                         style: TextStyle(
                                           color: estadoColor(estado),
                                           fontWeight: FontWeight.bold,
+                                          fontSize: 11,
                                         ),
                                       ),
                                     ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/pedido.dart';
 import '../services/pedido_service.dart';
 
-
 class DetallePedidoScreen extends StatefulWidget {
   final Pedido pedido;
   final Function(Pedido) onPedidoActualizado;
@@ -162,60 +161,60 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
     );
   }
 
-void _registrarPago(double monto) async {
-   print(' Registrando pago para pedido ID: ${_pedidoActual.id}');
-  if (monto <= 0) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('El monto debe ser mayor a 0'),
-        backgroundColor: Colors.orange,
-      ),
+  void _registrarPago(double monto) async {
+    print('Registrando pago para pedido ID: ${_pedidoActual.id}');
+    if (monto <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El monto debe ser mayor a 0'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final saldoActual = _pedidoActual.saldo ?? 0;
+    if (monto > saldoActual) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El monto no puede ser mayor al saldo pendiente'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final nuevoSaldo = (saldoActual - monto).clamp(0.0, double.infinity);
+
+    final exito = await _pedidoService.actualizarEstadoPago(
+      _pedidoActual.id,
+      nuevoSaldo,
     );
-    return;
+
+    if (!context.mounted) return;
+
+    if (exito) {
+      final pedidoActualizado = _pedidoActual.copyWith(
+        saldo: nuevoSaldo,
+        fechaActualizacion: DateTime.now(),
+      );
+      setState(() => _pedidoActual = pedidoActualizado);
+      widget.onPedidoActualizado(pedidoActualizado);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Pago registrado: \$${monto.toStringAsFixed(2)}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error al registrar pago'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
-
-  final saldoActual = _pedidoActual.saldo ?? 0;
-  if (monto > saldoActual) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('El monto no puede ser mayor al saldo pendiente'),
-        backgroundColor: Colors.orange,
-      ),
-    );
-    return;
-  }
-
-  final nuevoSaldo = (saldoActual - monto).clamp(0.0, double.infinity);
-
-  final exito = await _pedidoService.actualizarEstadoPago(
-    _pedidoActual.id,
-    nuevoSaldo,
-  );
-
-  if (!context.mounted) return;
-
-  if (exito) {
-    final pedidoActualizado = _pedidoActual.copyWith(
-      saldo: nuevoSaldo,
-      fechaActualizacion: DateTime.now(),
-    );
-    setState(() => _pedidoActual = pedidoActualizado);
-    widget.onPedidoActualizado(pedidoActualizado);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Pago registrado: \$${monto.toStringAsFixed(2)}'),
-        backgroundColor: Colors.green,
-      ),
-    );
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Error al registrar pago'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-}
 
   void _mostrarModalEstado() {
     final estados = ['Sin empezar', 'En proceso', 'Terminado', 'Entregado', 'Atrasado'];
@@ -285,46 +284,46 @@ void _registrarPago(double monto) async {
   }
 
   void _actualizarEstado(String nuevoEstado) async {
-     print(' Actualizando pedido ID: ${_pedidoActual.id} → $nuevoEstado');
-  if (nuevoEstado == _pedidoActual.estado) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('El estado ya es ese'),
-        backgroundColor: Colors.blue,
-      ),
+    print('Actualizando pedido ID: ${_pedidoActual.id} → $nuevoEstado');
+    if (nuevoEstado == _pedidoActual.estado) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El estado ya es ese'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+      return;
+    }
+
+    final exito = await _pedidoService.actualizarEstadoPedido(
+      _pedidoActual.id,
+      nuevoEstado,
     );
-    return;
+
+    if (!context.mounted) return;
+
+    if (exito) {
+      final pedidoActualizado = _pedidoActual.copyWith(
+        estado: nuevoEstado,
+        fechaActualizacion: DateTime.now(),
+      );
+      setState(() => _pedidoActual = pedidoActualizado);
+      widget.onPedidoActualizado(pedidoActualizado);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Estado actualizado a: $nuevoEstado'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error al actualizar estado'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
-
-  final exito = await _pedidoService.actualizarEstadoPedido(
-    _pedidoActual.id,
-    nuevoEstado,
-  );
-
-  if (!context.mounted) return;
-
-  if (exito) {
-    final pedidoActualizado = _pedidoActual.copyWith(
-      estado: nuevoEstado,
-      fechaActualizacion: DateTime.now(),
-    );
-    setState(() => _pedidoActual = pedidoActualizado);
-    widget.onPedidoActualizado(pedidoActualizado);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Estado actualizado a: $nuevoEstado'),
-        backgroundColor: Colors.green,
-      ),
-    );
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Error al actualizar estado'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-}
 
   void _mostrarModalHistorial() {
     showModalBottomSheet(

@@ -103,27 +103,24 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
         builder: (_) => PedidosScreen(
           pedidos: results.isEmpty ? _pedidos : results,
           onNavigate: (pantalla, [pedidoId]) {
-
-   if (pantalla == 'status_management' && pedidoId != null) {
-    print('🔍 Buscando pedido: $pedidoId');
-    print('🔍 IDs disponibles: ${_pedidos.map((p) => p.id).toList()}');
-    final pedido = _pedidos.firstWhere(
-      (p) => p.id == pedidoId,
-      orElse: () => _pedidos.first,
-    );
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DetallePedidoScreen(
-          pedido: pedido,
-          onPedidoActualizado: (pedidoActualizado) {
-            _guardarPedido(pedidoActualizado.toJson());
+            if (pantalla == 'status_management' && pedidoId != null) {
+              final pedido = _pedidos.firstWhere(
+                (p) => p.id == pedidoId,
+                orElse: () => _pedidos.first,
+              );
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DetallePedidoScreen(
+                    pedido: pedido,
+                    onPedidoActualizado: (pedidoActualizado) {
+                      _guardarPedido(pedidoActualizado.toJson());
+                    },
+                  ),
+                ),
+              );
+            }
           },
-        ),
-      ),
-    );
-  }
-},
           filtroInicial: 'Todos',
           estantes: _estantes,
           onGuardarPedido: _guardarPedido,
@@ -151,26 +148,24 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
         builder: (_) => PedidosScreen(
           pedidos: _pedidos,
           onNavigate: (pantalla, [pedidoId]) {
- if (pantalla == 'status_management' && pedidoId != null) {
-    print('🔍 Buscando pedido: $pedidoId');
-    print('🔍 IDs disponibles: ${_pedidos.map((p) => p.id).toList()}');
-    final pedido = _pedidos.firstWhere(
-      (p) => p.id == pedidoId,
-      orElse: () => _pedidos.first,
-    );
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DetallePedidoScreen(
-          pedido: pedido,
-          onPedidoActualizado: (pedidoActualizado) {
-            _guardarPedido(pedidoActualizado.toJson());
+            if (pantalla == 'status_management' && pedidoId != null) {
+              final pedido = _pedidos.firstWhere(
+                (p) => p.id == pedidoId,
+                orElse: () => _pedidos.first,
+              );
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DetallePedidoScreen(
+                    pedido: pedido,
+                    onPedidoActualizado: (pedidoActualizado) {
+                      _guardarPedido(pedidoActualizado.toJson());
+                    },
+                  ),
+                ),
+              );
+            }
           },
-        ),
-      ),
-    );
-  }
-},
           filtroInicial: 'Todos',
           estantes: _estantes,
           onGuardarPedido: _guardarPedido,
@@ -255,7 +250,6 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
   void _guardarPedido(Map<String, dynamic> pedidoData) {
     setState(() {
       final existingIndex = _pedidos.indexWhere((o) => o.id == pedidoData['id']);
-      
       
       Medida medidas;
       if (pedidoData['medidas'] != null) {
@@ -356,26 +350,24 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
         builder: (_) => PedidosScreen(
           pedidos: _pedidos,
           onNavigate: (pantalla, [pedidoId]) {
-  if (pantalla == 'status_management' && pedidoId != null) {
-    print('🔍 Buscando pedido: $pedidoId');
-    print('🔍 IDs disponibles: ${_pedidos.map((p) => p.id).toList()}');
-    final pedido = _pedidos.firstWhere(
-      (p) => p.id == pedidoId,
-      orElse: () => _pedidos.first,
-    );
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DetallePedidoScreen(
-          pedido: pedido,
-          onPedidoActualizado: (pedidoActualizado) {
-            _guardarPedido(pedidoActualizado.toJson());
+            if (pantalla == 'status_management' && pedidoId != null) {
+              final pedido = _pedidos.firstWhere(
+                (p) => p.id == pedidoId,
+                orElse: () => _pedidos.first,
+              );
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DetallePedidoScreen(
+                    pedido: pedido,
+                    onPedidoActualizado: (pedidoActualizado) {
+                      _guardarPedido(pedidoActualizado.toJson());
+                    },
+                  ),
+                ),
+              );
+            }
           },
-        ),
-      ),
-    );
-  }
-},
           filtroInicial: filtro,
           estantes: _estantes,
           onGuardarPedido: _guardarPedido,
@@ -682,7 +674,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
               ),
               const SizedBox(height: 24),
 
-              /// PANEL DE CONTROL
+              /// PANEL DE CONTROL - AHORA CON 4 BOTONES
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -711,12 +703,14 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                       const SizedBox(height: 20),
 
                       GridView.count(
-                        crossAxisCount: 3,
+                        crossAxisCount: 2, 
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         crossAxisSpacing: 12,
                         mainAxisSpacing: 12,
+                        childAspectRatio: 1.4,
                         children: [
+                          /// 1. Nuevo Pedido
                           _actionButton(
                             "Nuevo Pedido",
                             Icons.add,
@@ -734,6 +728,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                             },
                             true,
                           ),
+                          /// 2. Ver Pedidos
                           _actionButton(
                             "Ver Pedidos",
                             Icons.list_alt,
@@ -745,24 +740,24 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                                   builder: (_) => PedidosScreen(
                                     pedidos: _pedidos,
                                     onNavigate: (pantalla, [pedidoId]) {
-  if (pantalla == 'status_management' && pedidoId != null) {
-    final pedido = _pedidos.firstWhere(
-      (p) => p.id == pedidoId,
-      orElse: () => _pedidos.first,
-    );
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DetallePedidoScreen(
-          pedido: pedido,
-          onPedidoActualizado: (pedidoActualizado) {
-            _guardarPedido(pedidoActualizado.toJson());
-          },
-        ),
-      ),
-    );
-  }
-},
+                                      if (pantalla == 'status_management' && pedidoId != null) {
+                                        final pedido = _pedidos.firstWhere(
+                                          (p) => p.id == pedidoId,
+                                          orElse: () => _pedidos.first,
+                                        );
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => DetallePedidoScreen(
+                                              pedido: pedido,
+                                              onPedidoActualizado: (pedidoActualizado) {
+                                                _guardarPedido(pedidoActualizado.toJson());
+                                              },
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
                                     estantes: _estantes,
                                     onGuardarPedido: _guardarPedido,
                                     onRefresh: () {
@@ -777,6 +772,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                             },
                             false,
                           ),
+                          /// 3. Estantes Taller
                           _actionButton(
                             "Estantes Taller",
                             Icons.grid_view,
@@ -796,6 +792,16 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                             },
                             false,
                           ),
+                          /// 4. Recordatorios (NUEVO)
+                          _actionButton(
+                            "Recordatorios",
+                            Icons.calendar_today,
+                            const Color(0xffF59E0B),
+                            () {
+                              _navigateToRecordatorios();
+                            },
+                            false,
+                          ),
                         ],
                       ),
                     ],
@@ -803,75 +809,6 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              /// PRÓXIMOS RECORDATORIOS
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 15,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Próximos Recordatorios",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xff102A43),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    if (eventos.isEmpty)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Text(
-                            "No hay recordatorios pendientes",
-                            style: TextStyle(
-                              color: Color(0xff829AB1),
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      ...eventos.map((entry) {
-                        if (entry.key == 'recordatorio') {
-                          final recordatorio = entry.value as Recordatorio;
-                          return _recordatorioCard(recordatorio);
-                        } else {
-                          final pedido = entry.value as Pedido;
-                          return _pedidoCard(pedido);
-                        }
-                      }),
-                    
-                    const SizedBox(height: 16),
-                    Center(
-                      child: TextButton(
-                        onPressed: _navigateToRecordatorios,
-                        child: const Text(
-                          "Ver Calendario Completo →",
-                          style: TextStyle(
-                            color: Color(0xff6D3EFF),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -970,7 +907,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
       borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: Container(
-        height: 100,
+        height: 90,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: isPrimary
@@ -998,236 +935,21 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
           children: [
             Icon(
               icon,
-              size: 32,
+              size: 30,
               color: isPrimary ? Colors.white : color,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
                 text,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: isPrimary
                       ? Colors.white
                       : const Color(0xff23395B),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _recordatorioCard(Recordatorio recordatorio) {
-    final today = DateTime.now();
-    final isToday = recordatorio.fechaRecordatorio.year == today.year &&
-        recordatorio.fechaRecordatorio.month == today.month &&
-        recordatorio.fechaRecordatorio.day == today.day;
-    
-    final tomorrow = today.add(const Duration(days: 1));
-    final isTomorrow = recordatorio.fechaRecordatorio.year == tomorrow.year &&
-        recordatorio.fechaRecordatorio.month == tomorrow.month &&
-        recordatorio.fechaRecordatorio.day == tomorrow.day;
-
-    String displayText = recordatorio.titulo;
-    Color deadlineColor = const Color(0xff6D3EFF);
-
-    if (isToday) {
-      displayText = "HOY";
-      deadlineColor = const Color(0xffEF4444);
-    } else if (isTomorrow) {
-      displayText = "MAÑANA";
-      deadlineColor = const Color(0xffF59E0B);
-    } else {
-      final day = recordatorio.fechaRecordatorio.day.toString();
-      final month = recordatorio.fechaRecordatorio.month.toString();
-      displayText = "$day/$month";
-      deadlineColor = const Color(0xff6D3EFF);
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isToday 
-            ? Colors.red.shade50 
-            : isTomorrow 
-                ? Colors.orange.shade50 
-                : Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isToday 
-              ? Colors.red.shade200 
-              : isTomorrow 
-                  ? Colors.orange.shade200 
-                  : Colors.grey.shade200,
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  recordatorio.titulo,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Color(0xff102A43),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Cliente: ${recordatorio.pedidoId} • ${recordatorio.fechaRecordatorio.toLocal().toString().substring(11, 16)}",
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xff64748B),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color: deadlineColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              displayText,
-              style: TextStyle(
-                color: deadlineColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _pedidoCard(Pedido pedido) {
-    final fechaEntrega = pedido.fechaEntrega;
-    final today = DateTime.now();
-    
-    String displayText = "Pendiente";
-    Color deadlineColor = const Color(0xff6D3EFF);
-
-    if (fechaEntrega != null) {
-      final isToday = fechaEntrega.year == today.year &&
-          fechaEntrega.month == today.month &&
-          fechaEntrega.day == today.day;
-      
-      final tomorrow = today.add(const Duration(days: 1));
-      final isTomorrow = fechaEntrega.year == tomorrow.year &&
-          fechaEntrega.month == tomorrow.month &&
-          fechaEntrega.day == tomorrow.day;
-
-      if (isToday) {
-        displayText = "HOY";
-        deadlineColor = const Color(0xffEF4444);
-      } else if (isTomorrow) {
-        displayText = "MAÑANA";
-        deadlineColor = const Color(0xffF59E0B);
-      } else {
-        displayText = "${fechaEntrega.day}/${fechaEntrega.month}";
-        deadlineColor = const Color(0xff6D3EFF);
-      }
-    }
-
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => DetallePedidoScreen(
-              pedido: pedido,
-              onPedidoActualizado: (pedidoActualizado) {
-                _guardarPedido(pedidoActualizado.toJson());
-              },
-            ),
-          ),
-        );
-      },
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: Colors.grey.shade200,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.shopping_bag,
-                        size: 16,
-                        color: Color(0xff6D3EFF),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        pedido.titulo ?? 'Pedido sin título',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: Color(0xff102A43),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Cliente: ${pedido.clienteNombre}",
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xff64748B),
-                    ),
-                  ),
-                  Text(
-                    "Estante: ${pedido.estanteId ?? 'Sin asignar'}",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 6,
-              ),
-              decoration: BoxDecoration(
-                color: deadlineColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                displayText,
-                style: TextStyle(
-                  color: deadlineColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
                 ),
               ),
             ),
