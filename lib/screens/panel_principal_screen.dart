@@ -9,6 +9,7 @@ import 'configuracion_screen.dart';
 import 'recordatorios_screen.dart';
 import 'detalle_pedido_screen.dart';
 import '../models/medida.dart';
+import '../services/supabase_service.dart'; // ✅ Agregar import
 
 class PanelPrincipalScreen extends StatefulWidget {
   final List<Pedido> pedidos;
@@ -244,6 +245,22 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
         fechaCreacion: estante.fechaCreacion,
         fechaActualizacion: DateTime.now(),
       );
+    }
+  }
+
+  /// ✅ Cargar datos frescos desde Supabase
+  Future<void> _cargarDatosYActualizar() async {
+    try {
+      final supabaseService = SupabaseService();
+      final pedidosSupabase = await supabaseService.obtenerPedidos();
+      if (pedidosSupabase.isNotEmpty) {
+        setState(() {
+          _pedidos = pedidosSupabase;
+          _actualizarEstantesDesdePedidos();
+        });
+      }
+    } catch (e) {
+      print('Error al cargar datos: $e');
     }
   }
 
@@ -703,7 +720,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                       const SizedBox(height: 20),
 
                       GridView.count(
-                        crossAxisCount: 2, 
+                        crossAxisCount: 2,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         crossAxisSpacing: 12,
@@ -772,27 +789,46 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                             },
                             false,
                           ),
-                          /// 3. Estantes Taller
+                          /// 3. Estantes Taller - ✅ CORREGIDO
                           _actionButton(
                             "Estantes Taller",
                             Icons.grid_view,
                             const Color(0xff6D3EFF),
                             () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => CatalogoEstantesScreen(
-                                    estantes: _estantes,
-                                    pedidos: _pedidos,
-                                    onNavigateToDetallePedido: (pedidoId) {},
-                                    onEstantesActualizados: _actualizarEstantes,
+                              // ✅ Cargar datos frescos antes de abrir
+                              _cargarDatosYActualizar().then((_) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => CatalogoEstantesScreen(
+                                      estantes: _estantes,
+                                      pedidos: _pedidos,
+                                      onNavigateToDetallePedido: (pedidoId) {
+                                        final pedido = _pedidos.firstWhere(
+                                          (p) => p.id == pedidoId,
+                                          orElse: () => _pedidos.first,
+                                        );
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => DetallePedidoScreen(
+                                              pedido: pedido,
+                                              onPedidoActualizado: (pedidoActualizado) {
+                                                _guardarPedido(pedidoActualizado.toJson());
+                                              },
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      onEstantesActualizados: _actualizarEstantes,
+                                    ),
                                   ),
-                                ),
-                              );
+                                );
+                              });
                             },
                             false,
                           ),
-                          /// 4. Recordatorios (NUEVO)
+                          /// 4. Recordatorios
                           _actionButton(
                             "Recordatorios",
                             Icons.calendar_today,

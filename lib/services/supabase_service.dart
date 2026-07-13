@@ -20,12 +20,11 @@ class SupabaseService {
           .from('pedidos')
           .select('''
             *,
+            estantes:estantes(codigo, descripcion),
             medidas:medidas_pedido(*),
             prendas:prendas(*)
           ''')
           .order('fecha_registro', ascending: false);
-
-      
 
       final List<dynamic> data = response;
 
@@ -72,8 +71,14 @@ class SupabaseService {
           )).toList();
         }
 
+        // ✅ Obtener el código del estante (en lugar del ID numérico)
+        String codigoEstante = '';
+        if (json['estantes'] != null && json['estantes']['codigo'] != null) {
+          codigoEstante = json['estantes']['codigo'].toString();
+        }
+
         return Pedido(
-          id: json['codigo_pedido']?.toString() ?? json['id_pedido']?.toString() ?? '0',  
+          id: json['codigo_pedido']?.toString() ?? json['id_pedido']?.toString() ?? '0',
           clienteNombre: json['nombre_cliente'] ?? '',
           clienteTelefono: json['telefono'] ?? '',
           clienteEmail: json['email'] ?? '',
@@ -91,8 +96,8 @@ class SupabaseService {
               : null,
           medidas: medidas,
           prendas: prendas,
-          titulo: '${json['tipo_prenda'] ?? 'Pedido'} - ${json['nombre_cliente'] ?? ''}', 
-          estanteId: json['id_estante']?.toString(),
+          titulo: '${json['tipo_prenda'] ?? 'Pedido'} - ${json['nombre_cliente'] ?? ''}',
+          estanteId: codigoEstante, // ✅ Usar el código del estante (ej: "E04")
           prioridad: json['prioridad'] ?? 'Media',
           tipoPrenda: json['tipo_prenda'] ?? 'vestido',
           talla: json['talla'] ?? 'M',
@@ -107,100 +112,99 @@ class SupabaseService {
   }
 
   /// Insertar un nuevo pedido
-    Future<bool> insertarPedido(Map<String, dynamic> pedidoData) async {
-      try {
-        final codigoEstante = pedidoData['shelfAssignment']?.toString() ?? '';
-        
-        if (codigoEstante.isEmpty) {
-          print('❌ Código de estante vacío');
-          return false;
-        }
-
-        print('🔍 Buscando estante con código: $codigoEstante');
-
-        final estanteResponse = await _supabase
-            .from('estantes')
-            .select('id_estante')
-            .eq('codigo', codigoEstante)
-            .maybeSingle();
-
-        if (estanteResponse == null) {
-          print('❌ Estante no encontrado con código: $codigoEstante');
-          return false;
-        }
-
-        final int idEstante = estanteResponse['id_estante'];
-        print('✅ Estante encontrado: id_estante=$idEstante');
-
-        final response = await _supabase.from('pedidos').insert({
-          'codigo_pedido': pedidoData['id'] ?? 'PED-${DateTime.now().millisecondsSinceEpoch}',
-          'nombre_cliente': pedidoData['clientName'] ?? '',
-          'telefono': pedidoData['clientPhone'] ?? '',
-          'email': pedidoData['clientEmail'] ?? '',
-          'descripcion': pedidoData['description'] ?? '',
-          'precio_total': pedidoData['totalAmount'] ?? 0.0,
-          'anticipo': pedidoData['advancePaid'] ?? 0.0,
-          'saldo': pedidoData['balanceDue'] ?? 0.0,
-          'estado_pedido': pedidoData['status'] ?? 'Sin empezar',
-          'fecha_registro': pedidoData['statusDate'] ?? DateTime.now().toIso8601String(),
-          'fecha_entrega': pedidoData['expectedDeliveryDate'] ?? 
-              DateTime.now().add(const Duration(days: 7)).toIso8601String().substring(0, 10),
-          'id_estante': idEstante,
-          'prioridad': pedidoData['priority'] ?? 'Media',
-          'tipo_prenda': pedidoData['garmentType'] ?? 'vestido',
-          'talla': pedidoData['size'] ?? 'M',
-        }).select();
-
-        // ✅ Actualizar ocupados del estante
-        await _actualizarOcupadosEstante(idEstante);
-
-        print('✅ Pedido insertado correctamente: $response');
-        return true;
-      } catch (e) {
-        print('❌ Error en insertarPedido: $e');
-        print('📦 Datos del pedido: $pedidoData');
+  Future<bool> insertarPedido(Map<String, dynamic> pedidoData) async {
+    try {
+      final codigoEstante = pedidoData['shelfAssignment']?.toString() ?? '';
+      
+      if (codigoEstante.isEmpty) {
+        print('❌ Código de estante vacío');
         return false;
       }
-    }
 
-    /// Recalcula y actualiza el campo ocupados de un estante
-    Future<void> _actualizarOcupadosEstante(int idEstante) async {
-      try {
-        final pedidosActivos = await _supabase
-            .from('pedidos')
-            .select('id_pedido')
-            .eq('id_estante', idEstante)
-            .neq('estado_pedido', 'Entregado');
+      print('🔍 Buscando estante con código: $codigoEstante');
 
-        final int count = (pedidosActivos as List).length;
+      final estanteResponse = await _supabase
+          .from('estantes')
+          .select('id_estante')
+          .eq('codigo', codigoEstante)
+          .maybeSingle();
 
-        await _supabase
-            .from('estantes')
-            .update({'ocupados': count})
-            .eq('id_estante', idEstante);
-
-        print('✅ Estante $idEstante actualizado: $count ocupados');
-      } catch (e) {
-        print('❌ Error al actualizar ocupados: $e');
+      if (estanteResponse == null) {
+        print('❌ Estante no encontrado con código: $codigoEstante');
+        return false;
       }
+
+      final int idEstante = estanteResponse['id_estante'];
+      print('✅ Estante encontrado: id_estante=$idEstante');
+
+      final response = await _supabase.from('pedidos').insert({
+        'codigo_pedido': pedidoData['id'] ?? 'PED-${DateTime.now().millisecondsSinceEpoch}',
+        'nombre_cliente': pedidoData['clientName'] ?? '',
+        'telefono': pedidoData['clientPhone'] ?? '',
+        'email': pedidoData['clientEmail'] ?? '',
+        'descripcion': pedidoData['description'] ?? '',
+        'precio_total': pedidoData['totalAmount'] ?? 0.0,
+        'anticipo': pedidoData['advancePaid'] ?? 0.0,
+        'saldo': pedidoData['balanceDue'] ?? 0.0,
+        'estado_pedido': pedidoData['status'] ?? 'Sin empezar',
+        'fecha_registro': pedidoData['statusDate'] ?? DateTime.now().toIso8601String(),
+        'fecha_entrega': pedidoData['expectedDeliveryDate'] ?? 
+            DateTime.now().add(const Duration(days: 7)).toIso8601String().substring(0, 10),
+        'id_estante': idEstante,
+        'prioridad': pedidoData['priority'] ?? 'Media',
+        'tipo_prenda': pedidoData['garmentType'] ?? 'vestido',
+        'talla': pedidoData['size'] ?? 'M',
+      }).select();
+
+      // ✅ Actualizar ocupados del estante
+      await _actualizarOcupadosEstante(idEstante);
+
+      print('✅ Pedido insertado correctamente: $response');
+      return true;
+    } catch (e) {
+      print('❌ Error en insertarPedido: $e');
+      print('📦 Datos del pedido: $pedidoData');
+      return false;
     }
+  }
 
-    /// Recalcula ocupados de TODOS los estantes
-    Future<void> recalcularTodosLosEstantes() async {
-      try {
-        final estantes = await _supabase
-            .from('estantes')
-            .select('id_estante');
+  /// Recalcula y actualiza el campo ocupados de un estante
+  Future<void> _actualizarOcupadosEstante(int idEstante) async {
+    try {
+      final pedidosActivos = await _supabase
+          .from('pedidos')
+          .select('id_pedido')
+          .eq('id_estante', idEstante)
+          .neq('estado_pedido', 'Entregado');
 
-        for (final estante in estantes as List) {
-          await _actualizarOcupadosEstante(estante['id_estante']);
-        }
-        print('✅ Todos los estantes recalculados');
-      } catch (e) {
-        print('❌ Error al recalcular estantes: $e');
+      final int count = (pedidosActivos as List).length;
+
+      await _supabase
+          .from('estantes')
+          .update({'ocupados': count})
+          .eq('id_estante', idEstante);
+
+      print('✅ Estante $idEstante actualizado: $count ocupados');
+    } catch (e) {
+      print('❌ Error al actualizar ocupados: $e');
+    }
+  }
+
+  /// Recalcula ocupados de TODOS los estantes
+  Future<void> recalcularTodosLosEstantes() async {
+    try {
+      final estantes = await _supabase
+          .from('estantes')
+          .select('id_estante');
+
+      for (final estante in estantes as List) {
+        await _actualizarOcupadosEstante(estante['id_estante']);
       }
+      print('✅ Todos los estantes recalculados');
+    } catch (e) {
+      print('❌ Error al recalcular estantes: $e');
     }
-
+  }
 
   /// Obtener todos los estantes
   Future<List<Estante>> obtenerEstantes() async {
@@ -210,7 +214,6 @@ class SupabaseService {
           .select('*')
           .order('codigo', ascending: true);
 
-     
       final List<dynamic> data = response;
 
       return data.map((json) {
@@ -247,7 +250,6 @@ class SupabaseService {
           .select('*')
           .order('fecha_recordatorio', ascending: true);
 
-      
       final List<dynamic> data = response;
 
       return data.map((json) => Recordatorio(
@@ -285,7 +287,6 @@ class SupabaseService {
           .eq('pedido_id', int.tryParse(pedidoId) ?? 0)
           .order('tipo_medida', ascending: true);
 
-     
       final List<dynamic> data = response;
 
       return data.map((json) => Medida(
