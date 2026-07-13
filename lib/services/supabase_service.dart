@@ -25,10 +25,7 @@ class SupabaseService {
           ''')
           .order('fecha_registro', ascending: false);
 
-      if (response is! List) {
-        print('⚠️ La respuesta no es una lista: ${response.runtimeType}');
-        return [];
-      }
+      
 
       final List<dynamic> data = response;
 
@@ -110,64 +107,100 @@ class SupabaseService {
   }
 
   /// Insertar un nuevo pedido
-  Future<bool> insertarPedido(Map<String, dynamic> pedidoData) async {
-    try {
-      // ✅ Buscar el id_estante por su código
-      final codigoEstante = pedidoData['shelfAssignment']?.toString() ?? '';
-      
-      if (codigoEstante.isEmpty) {
-        print('❌ Código de estante vacío');
+    Future<bool> insertarPedido(Map<String, dynamic> pedidoData) async {
+      try {
+        final codigoEstante = pedidoData['shelfAssignment']?.toString() ?? '';
+        
+        if (codigoEstante.isEmpty) {
+          print('❌ Código de estante vacío');
+          return false;
+        }
+
+        print('🔍 Buscando estante con código: $codigoEstante');
+
+        final estanteResponse = await _supabase
+            .from('estantes')
+            .select('id_estante')
+            .eq('codigo', codigoEstante)
+            .maybeSingle();
+
+        if (estanteResponse == null) {
+          print('❌ Estante no encontrado con código: $codigoEstante');
+          return false;
+        }
+
+        final int idEstante = estanteResponse['id_estante'];
+        print('✅ Estante encontrado: id_estante=$idEstante');
+
+        final response = await _supabase.from('pedidos').insert({
+          'codigo_pedido': pedidoData['id'] ?? 'PED-${DateTime.now().millisecondsSinceEpoch}',
+          'nombre_cliente': pedidoData['clientName'] ?? '',
+          'telefono': pedidoData['clientPhone'] ?? '',
+          'email': pedidoData['clientEmail'] ?? '',
+          'descripcion': pedidoData['description'] ?? '',
+          'precio_total': pedidoData['totalAmount'] ?? 0.0,
+          'anticipo': pedidoData['advancePaid'] ?? 0.0,
+          'saldo': pedidoData['balanceDue'] ?? 0.0,
+          'estado_pedido': pedidoData['status'] ?? 'Sin empezar',
+          'fecha_registro': pedidoData['statusDate'] ?? DateTime.now().toIso8601String(),
+          'fecha_entrega': pedidoData['expectedDeliveryDate'] ?? 
+              DateTime.now().add(const Duration(days: 7)).toIso8601String().substring(0, 10),
+          'id_estante': idEstante,
+          'prioridad': pedidoData['priority'] ?? 'Media',
+          'tipo_prenda': pedidoData['garmentType'] ?? 'vestido',
+          'talla': pedidoData['size'] ?? 'M',
+        }).select();
+
+        // ✅ Actualizar ocupados del estante
+        await _actualizarOcupadosEstante(idEstante);
+
+        print('✅ Pedido insertado correctamente: $response');
+        return true;
+      } catch (e) {
+        print('❌ Error en insertarPedido: $e');
+        print('📦 Datos del pedido: $pedidoData');
         return false;
       }
-
-      print('🔍 Buscando estante con código: $codigoEstante');
-
-      // Buscar el estante por su código
-      final estanteResponse = await _supabase
-          .from('estantes')
-          .select('id_estante')
-          .eq('codigo', codigoEstante)
-          .maybeSingle();
-
-      if (estanteResponse == null) {
-        print('❌ Estante no encontrado con código: $codigoEstante');
-        return false;
-      }
-
-      final int idEstante = estanteResponse['id_estante'];
-      print('✅ Estante encontrado: id_estante=$idEstante');
-
-      final response = await _supabase.from('pedidos').insert({
-        'codigo_pedido': pedidoData['id'] ?? 'PED-${DateTime.now().millisecondsSinceEpoch}',
-        'nombre_cliente': pedidoData['clientName'] ?? '',
-        'telefono': pedidoData['clientPhone'] ?? '',
-        'email': pedidoData['clientEmail'] ?? '',
-        'descripcion': pedidoData['description'] ?? '',
-        'precio_total': pedidoData['totalAmount'] ?? 0.0,
-        'anticipo': pedidoData['advancePaid'] ?? 0.0,
-        'saldo': pedidoData['balanceDue'] ?? 0.0,
-        'estado_pedido': pedidoData['status'] ?? 'Sin empezar',
-        'fecha_registro': pedidoData['statusDate'] ?? DateTime.now().toIso8601String(),
-        'fecha_entrega': pedidoData['expectedDeliveryDate'] ?? 
-            DateTime.now().add(const Duration(days: 7)).toIso8601String().substring(0, 10),
-        'id_estante': idEstante,  // ✅ Usar el id_estante numérico
-        'prioridad': pedidoData['priority'] ?? 'Media',
-        'tipo_prenda': pedidoData['garmentType'] ?? 'vestido',
-        'talla': pedidoData['size'] ?? 'M',
-      }).select();
-
-      print('✅ Pedido insertado correctamente: $response');
-      return true;
-    } catch (e) {
-      print('❌ Error en insertarPedido: $e');
-      print('📦 Datos del pedido: $pedidoData');
-      return false;
     }
-  }
 
-  /// ============================================================
-  /// ESTANTES (tabla: estantes)
-  /// ============================================================
+    /// Recalcula y actualiza el campo ocupados de un estante
+    Future<void> _actualizarOcupadosEstante(int idEstante) async {
+      try {
+        final pedidosActivos = await _supabase
+            .from('pedidos')
+            .select('id_pedido')
+            .eq('id_estante', idEstante)
+            .neq('estado_pedido', 'Entregado');
+
+        final int count = (pedidosActivos as List).length;
+
+        await _supabase
+            .from('estantes')
+            .update({'ocupados': count})
+            .eq('id_estante', idEstante);
+
+        print('✅ Estante $idEstante actualizado: $count ocupados');
+      } catch (e) {
+        print('❌ Error al actualizar ocupados: $e');
+      }
+    }
+
+    /// Recalcula ocupados de TODOS los estantes
+    Future<void> recalcularTodosLosEstantes() async {
+      try {
+        final estantes = await _supabase
+            .from('estantes')
+            .select('id_estante');
+
+        for (final estante in estantes as List) {
+          await _actualizarOcupadosEstante(estante['id_estante']);
+        }
+        print('✅ Todos los estantes recalculados');
+      } catch (e) {
+        print('❌ Error al recalcular estantes: $e');
+      }
+    }
+
 
   /// Obtener todos los estantes
   Future<List<Estante>> obtenerEstantes() async {
@@ -177,11 +210,7 @@ class SupabaseService {
           .select('*')
           .order('codigo', ascending: true);
 
-      if (response is! List) {
-        print('⚠️ La respuesta no es una lista: ${response.runtimeType}');
-        return [];
-      }
-
+     
       final List<dynamic> data = response;
 
       return data.map((json) {
@@ -218,11 +247,7 @@ class SupabaseService {
           .select('*')
           .order('fecha_recordatorio', ascending: true);
 
-      if (response is! List) {
-        print('⚠️ La respuesta no es una lista: ${response.runtimeType}');
-        return [];
-      }
-
+      
       final List<dynamic> data = response;
 
       return data.map((json) => Recordatorio(
@@ -260,11 +285,7 @@ class SupabaseService {
           .eq('pedido_id', int.tryParse(pedidoId) ?? 0)
           .order('tipo_medida', ascending: true);
 
-      if (response is! List) {
-        print('⚠️ La respuesta no es una lista: ${response.runtimeType}');
-        return [];
-      }
-
+     
       final List<dynamic> data = response;
 
       return data.map((json) => Medida(

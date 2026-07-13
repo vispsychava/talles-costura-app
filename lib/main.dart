@@ -25,6 +25,11 @@ class TallerCosturaApp extends StatelessWidget {
 
   Future<Map<String, List<dynamic>>> _cargarDatos() async {
     try {
+      
+       print(' Recalculando estantes...');
+    await supabaseService.recalcularTodosLosEstantes();
+    print(' Estantes recalculados');
+
       final listas = await Future.wait([
         supabaseService.obtenerPedidos(),
         supabaseService.obtenerRecordatorios(),
