@@ -37,6 +37,18 @@ dependencies:
   # Zonas horarias
   timezone: ^0.9.4
 
+  # ✅ QR
+  qr_flutter: ^4.1.0
+
+  # ✅ Compartir/guardar imagen
+  screenshot: ^3.0.0
+  share_plus: ^10.0.0
+  path_provider: ^2.1.0
+
+  # ✅ Deep links
+  app_links: ^7.2.1
+  mobile_scanner: ^7.4.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/pedido.dart';
 import '../services/pedido_service.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class DetallePedidoScreen extends StatefulWidget {
   final Pedido pedido;
@@ -21,6 +26,7 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
   late String estadoSeleccionado;
   late Pedido _pedidoActual;
   final _pedidoService = PedidoService();
+  final _screenshotController = ScreenshotController();
 
   @override
   void initState() {
@@ -160,6 +166,20 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
       },
     );
   }
+
+        void _compartirEtiqueta() async {
+        final imagen = await _screenshotController.capture();
+        if (imagen == null) return;
+
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/etiqueta_${_pedidoActual.id}.png');
+        await file.writeAsBytes(imagen);
+
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'Etiqueta del pedido ${_pedidoActual.id}',
+        );
+      }
 
   void _registrarPago(double monto) async {
     print('Registrando pago para pedido ID: ${_pedidoActual.id}');
@@ -508,7 +528,15 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
   Widget build(BuildContext context) {
     final pedido = _pedidoActual;
     final isPaid = (pedido.saldo ?? 0) == 0;
+final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
+  
+  final String entregaFormateada = pedido.fechaEntrega != null 
+      ? pedido.fechaEntrega!.toLocal().toString().substring(0, 10) 
+      : 'N/A';
 
+  final String qrData = 
+      'tallercostura://pedido/${pedido.id}?cliente=$clienteEncoded&entrega=$entregaFormateada';
+      
     return Scaffold(
       backgroundColor: const Color(0xffF8FAFC),
       appBar: AppBar(
@@ -875,6 +903,99 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
                   ),
                 ),
               ),
+
+              /// QR CODE
+Screenshot(
+  controller: _screenshotController,
+  child: Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 15,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xff6D3EFF).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.qr_code, color: Color(0xff6D3EFF), size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Código QR',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xff102A43),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        // ✅ AQUÍ REEMPLAZAMOS 'data' POR 'qrData'
+        QrImageView(
+          data: qrData,
+          version: QrVersions.auto,
+          size: 200,
+          backgroundColor: Colors.white,
+        ),
+        
+        const SizedBox(height: 8),
+        Text(
+          _pedidoActual.id,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xff102A43),
+          ),
+        ),
+        Text(
+          _pedidoActual.clienteNombre,
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        Text(
+          'Entrega: $entregaFormateada',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade500,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          onPressed: _compartirEtiqueta,
+          icon: const Icon(Icons.share),
+          label: const Text('Compartir / Imprimir etiqueta'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xff6D3EFF),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            minimumSize: const Size(double.infinity, 48),
+          ),
+        ),
+      ],
+    ),
+  ),
+),
+const SizedBox(height: 16),
           ],
         ),
       ),
@@ -897,6 +1018,8 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
         return Colors.grey;
     }
   }
+
+  
 
   Widget _medidaItem(String label, String value) {
     return Container(

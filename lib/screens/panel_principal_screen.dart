@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:talles_costura_app/screens/escanear_qr_screen.dart';
 import '../models/pedido.dart';
 import '../models/recordatorio.dart';
 import 'nuevo_pedido_screen.dart';
@@ -838,6 +839,17 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                             },
                             false,
                           ),
+                          IconButton(
+  icon: const Icon(Icons.qr_code_scanner, size: 28),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const EscanearQrScreen(),
+      ),
+    );
+  },
+)
                         ],
                       ),
                     ],
@@ -932,6 +944,8 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
     );
   }
 
+
+
   Widget _actionButton(
     String text,
     IconData icon,
@@ -995,3 +1009,4 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
     );
   }
 }
+
