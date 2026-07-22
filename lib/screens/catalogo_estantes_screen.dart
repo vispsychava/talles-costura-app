@@ -28,6 +28,14 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
   final SupabaseService _supabaseService = SupabaseService();
   bool _isLoading = false;
   bool _cargandoDatos = false;
+  String _filtroEstado = 'Todos';
+
+  List<Estante> get _estantesFiltrados {
+  if (_filtroEstado == 'Todos') return _estantes;
+  return _estantes.where((e) => 
+    _obtenerEstado(e.ocupados, e.capacidad) == _filtroEstado
+  ).toList();
+}
 
   @override
   void initState() {
@@ -121,13 +129,14 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
     }
   }
 
-  String _obtenerEstado(int ocupados, int capacidad) {
-    if (ocupados == 0) return "Abierto";
-    final percentage = ocupados / capacidad;
-    if (percentage >= 1.0) return "Lleno";
-    if (percentage >= 0.75) return "Casi Lleno";
-    return "Abierto";
-  }
+String _obtenerEstado(int ocupados, int capacidad) {
+  if (capacidad == 0) return 'Abierto';
+  if (ocupados == 0) return 'Abierto';
+  final percentage = ocupados / capacidad;
+  if (percentage >= 1.0) return 'Lleno';
+  if (percentage >= 0.75) return 'Casi Lleno';
+  return 'Abierto';
+}
 
   void abrirEstante(Estante estante) {
     // ✅ Buscar pedidos por código del estante (estante.id ya es el código)
@@ -280,15 +289,23 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
     }
   }
 
-  Widget _chipEstadistica(String texto, Color colorTexto, Color bg) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 18,
-        vertical: 12,
-      ),
+ Widget _chipEstadistica(String texto, Color colorTexto, Color bg, String filtro) {
+  final isSelected = _filtroEstado == filtro;
+  return GestureDetector(
+    onTap: () {
+      setState(() {
+        _filtroEstado = _filtroEstado == filtro ? 'Todos' : filtro;
+      });
+    },
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: isSelected ? colorTexto : Colors.transparent,
+          width: 2,
+        ),
       ),
       child: Text(
         texto,
@@ -297,8 +314,9 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
           fontWeight: FontWeight.bold,
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -380,26 +398,30 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
                             spacing: 12,
                             runSpacing: 12,
                             children: [
-                              _chipEstadistica(
-                                "ESTANTES TOTALES: $totalEstantes",
-                                const Color(0xff6D3EFF),
-                                const Color(0xffEEF2FF),
-                              ),
-                              _chipEstadistica(
-                                "DISPONIBLES: $disponiblesCount",
-                                const Color(0xff15803D),
-                                const Color(0xffDCFCE7),
-                              ),
-                              _chipEstadistica(
-                                "CASI LLENOS: $casiLlenosCount",
-                                const Color(0xffD97706),
-                                const Color(0xffFEF3C7),
-                              ),
-                              _chipEstadistica(
-                                "SATURADOS: $llenosCount",
-                                const Color(0xffDC2626),
-                                const Color(0xffFEE2E2),
-                              ),
+                             _chipEstadistica(
+                            "ESTANTES TOTALES: $totalEstantes",
+                            const Color(0xff6D3EFF),
+                            const Color(0xffEEF2FF),
+                            'Todos',
+                          ),
+                          _chipEstadistica(
+                            "DISPONIBLES: $disponiblesCount",
+                            const Color(0xff15803D),
+                            const Color(0xffDCFCE7),
+                            'Abierto',
+                          ),
+                          _chipEstadistica(
+                            "CASI LLENOS: $casiLlenosCount",
+                            const Color(0xffD97706),
+                            const Color(0xffFEF3C7),
+                            'Casi Lleno',
+                          ),
+                          _chipEstadistica(
+                            "SATURADOS: $llenosCount",
+                            const Color(0xffDC2626),
+                            const Color(0xffFEE2E2),
+                            'Lleno',
+                          ),
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -425,15 +447,15 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
                           GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _estantes.length,
+                            itemCount: _estantesFiltrados.length,
                             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,
                               crossAxisSpacing: 12,
                               mainAxisSpacing: 12,
                               childAspectRatio: 1.05,
                             ),
-                            itemBuilder: (context, index) {
-                              final estante = _estantes[index];
+                               itemBuilder: (context, index) {
+                              final estante = _estantesFiltrados[index];      
                               final estado = _obtenerEstado(estante.ocupados, estante.capacidad);
                               final usagePercent = estante.capacidad > 0
                                   ? estante.ocupados / estante.capacidad
@@ -520,29 +542,7 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 12),
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(20),
-                                        child: LinearProgressIndicator(
-                                          value: usagePercent > 1.0 ? 1.0 : usagePercent,
-                                          minHeight: 12,
-                                          color: estadoColor(estado),
-                                          backgroundColor: Colors.grey.shade200,
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      Divider(
-                                        color: Colors.grey.shade200,
-                                      ),
-                                      Text(
-                                        estante.ocupados > 0
-                                            ? '${estante.ocupados} prenda${estante.ocupados > 1 ? 's' : ''} en almacenamiento'
-                                            : 'Estante vacío',
-                                        style: TextStyle(
-                                          color: Colors.grey.shade500,
-                                          fontSize: 15,
-                                        ),
-                                      ),
+                                      const SizedBox(height: 12),                                
                                     ],
                                   ),
                                 ),

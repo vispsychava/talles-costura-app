@@ -36,137 +36,140 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
     estadoSeleccionado = _pedidoActual.estado;
   }
 
-  void _mostrarModalPago() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 60,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+ void _mostrarModalPago() {
+  final pagoController = TextEditingController(); // ✅ controller
+  montoPago = 0; // ✅ resetear a 0
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (_) {
+      return Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 20,
+          right: 20,
+          top: 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'Registrar Pago',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: Color(0xff102A43),
-                ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Registrar Pago',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: Color(0xff102A43),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Cliente: ${_pedidoActual.clienteNombre}',
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Cliente: ${_pedidoActual.clienteNombre}',
+              style: TextStyle(
+                color: Colors.grey.shade600,
               ),
-              const SizedBox(height: 20),
-              TextField(
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Monto a pagar',
-                  hintText: '\$0.00',
-                  prefixIcon: const Icon(Icons.attach_money),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-                onChanged: (value) {
-                  montoPago = double.tryParse(value) ?? (_pedidoActual.saldo ?? 0);
-                },
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xff6D3EFF).withValues(alpha: 0.08),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: pagoController, // ✅ controller
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Monto a pagar',
+                hintText: '\$0.00',
+                prefixIcon: const Icon(Icons.attach_money),
+                border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Saldo pendiente:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xff102A43),
-                      ),
-                    ),
-                    Text(
-                      '\$${(_pedidoActual.saldo ?? 0).toStringAsFixed(2)} MXN',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xff6D3EFF),
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
               ),
-              const SizedBox(height: 20),
-              Row(
+              onChanged: (value) {
+                montoPago = double.tryParse(value) ?? 0; // ✅ default 0
+              },
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xff6D3EFF).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.grey.shade300),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Cancelar'),
+                  const Text(
+                    'Saldo pendiente:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xff102A43),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _registrarPago(montoPago);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xff6D3EFF),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Confirmar Pago'),
+                  Text(
+                    '\$${(_pedidoActual.saldo ?? 0).toStringAsFixed(2)} MXN',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xff6D3EFF),
+                      fontSize: 16,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Cancelar'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _registrarPago(montoPago);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff6D3EFF),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Confirmar Pago'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      );
+    },
+  );
+}
         void _compartirEtiqueta() async {
         final imagen = await _screenshotController.capture();
         if (imagen == null) return;
