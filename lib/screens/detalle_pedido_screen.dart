@@ -37,6 +37,8 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
   }
 
   void _mostrarModalPago() {
+    final pagoController = TextEditingController(); // ✅ controller
+    montoPago = 0; // ✅ resetear a 0
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -78,6 +80,7 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
               ),
               const SizedBox(height: 20),
               TextField(
+                controller: pagoController, // ✅ controller
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Monto a pagar',
@@ -90,8 +93,7 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
                   fillColor: Colors.grey.shade50,
                 ),
                 onChanged: (value) {
-                  montoPago =
-                      double.tryParse(value) ?? (_pedidoActual.saldo ?? 0);
+                  montoPago = double.tryParse(value) ?? 0; // ✅ default 0
                 },
               ),
               const SizedBox(height: 12),
