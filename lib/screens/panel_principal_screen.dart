@@ -32,7 +32,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
   int notificacionesCount = 3;
   late List<Pedido> _pedidos;
   late List<Estante> _estantes;
-  
+
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   bool _showSuggestions = false;
@@ -73,9 +73,9 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
         final titulo = pedido.titulo?.toLowerCase() ?? '';
         final id = pedido.id.toLowerCase();
         final cliente = pedido.clienteNombre.toLowerCase();
-        return titulo.contains(query) || 
-               id.contains(query) || 
-               cliente.contains(query);
+        return titulo.contains(query) ||
+            id.contains(query) ||
+            cliente.contains(query);
       }).toList();
       _showSuggestions = true;
     });
@@ -89,9 +89,9 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
       final titulo = pedido.titulo?.toLowerCase() ?? '';
       final id = pedido.id.toLowerCase();
       final cliente = pedido.clienteNombre.toLowerCase();
-      return titulo.contains(query) || 
-             id.contains(query) || 
-             cliente.contains(query);
+      return titulo.contains(query) ||
+          id.contains(query) ||
+          cliente.contains(query);
     }).toList();
 
     setState(() {
@@ -184,38 +184,42 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
 
   List<MapEntry<String, dynamic>> get proximosEventos {
     List<MapEntry<String, dynamic>> eventos = [];
-    
+
     for (var recordatorio in widget.recordatorios) {
       if (!recordatorio.completado) {
         eventos.add(MapEntry('recordatorio', recordatorio));
       }
     }
-    
+
     for (var pedido in _pedidos) {
       if (pedido.estado != "Entregado") {
         eventos.add(MapEntry('pedido', pedido));
       }
     }
-    
+
     eventos.sort((a, b) {
       DateTime dateA;
       DateTime dateB;
-      
+
       if (a.key == 'recordatorio') {
         dateA = (a.value as Recordatorio).fechaRecordatorio;
       } else {
-        dateA = (a.value as Pedido).fechaEntrega ?? DateTime.now().add(const Duration(days: 7));
+        dateA =
+            (a.value as Pedido).fechaEntrega ??
+            DateTime.now().add(const Duration(days: 7));
       }
-      
+
       if (b.key == 'recordatorio') {
         dateB = (b.value as Recordatorio).fechaRecordatorio;
       } else {
-        dateB = (b.value as Pedido).fechaEntrega ?? DateTime.now().add(const Duration(days: 7));
+        dateB =
+            (b.value as Pedido).fechaEntrega ??
+            DateTime.now().add(const Duration(days: 7));
       }
-      
+
       return dateA.compareTo(dateB);
     });
-    
+
     return eventos.take(3).toList();
   }
 
@@ -232,7 +236,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
         }
       }
     }
-    
+
     for (int i = 0; i < _estantes.length; i++) {
       final estante = _estantes[i];
       final count = estanteCounts[estante.id] ?? 0;
@@ -267,8 +271,10 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
 
   void _guardarPedido(Map<String, dynamic> pedidoData) {
     setState(() {
-      final existingIndex = _pedidos.indexWhere((o) => o.id == pedidoData['id']);
-      
+      final existingIndex = _pedidos.indexWhere(
+        (o) => o.id == pedidoData['id'],
+      );
+
       Medida medidas;
       if (pedidoData['medidas'] != null) {
         medidas = Medida.fromJson(pedidoData['medidas']);
@@ -284,25 +290,27 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
 
       final String id = pedidoData['id']?.toString() ?? '';
       final String clienteNombre = pedidoData['clientName']?.toString() ?? '';
-      final String clienteTelefono = pedidoData['clientPhone']?.toString() ?? '';
+      final String clienteTelefono =
+          pedidoData['clientPhone']?.toString() ?? '';
       final String clienteEmail = pedidoData['clientEmail']?.toString() ?? '';
       final String estado = pedidoData['status']?.toString() ?? 'Sin empezar';
       final String descripcion = pedidoData['description']?.toString() ?? '';
       final double total = (pedidoData['totalAmount'] ?? 0.0).toDouble();
-      final DateTime fechaPedido = pedidoData['fechaPedido'] != null 
-          ? DateTime.parse(pedidoData['fechaPedido'].toString()) 
+      final DateTime fechaPedido = pedidoData['fechaPedido'] != null
+          ? DateTime.parse(pedidoData['fechaPedido'].toString())
           : DateTime.now();
-      final DateTime? fechaEntrega = pedidoData['deliveryDate'] != null 
-          ? DateTime.parse(pedidoData['deliveryDate'].toString()) 
+      final DateTime? fechaEntrega = pedidoData['deliveryDate'] != null
+          ? DateTime.parse(pedidoData['deliveryDate'].toString())
           : null;
       final String titulo = pedidoData['title']?.toString() ?? 'Pedido';
       final String? estanteId = pedidoData['shelfAssignment']?.toString();
       final String prioridad = pedidoData['priority']?.toString() ?? 'Media';
-      final String tipoPrenda = pedidoData['garmentType']?.toString() ?? 'vestido';
+      final String tipoPrenda =
+          pedidoData['garmentType']?.toString() ?? 'vestido';
       final String talla = pedidoData['size']?.toString() ?? 'M';
       final double anticipo = (pedidoData['advancePaid'] ?? 0.0).toDouble();
       final double saldo = (pedidoData['balanceDue'] ?? 0.0).toDouble();
-      
+
       if (existingIndex != -1) {
         final pedidoActualizado = Pedido(
           id: id,
@@ -350,7 +358,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
         );
         _pedidos.add(nuevoPedido);
       }
-      
+
       _actualizarEstantesDesdePedidos();
     });
   }
@@ -422,9 +430,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
         .where((o) => o.estado == 'Sin empezar')
         .length;
 
-    final procesoCount = _pedidos
-        .where((o) => o.estado == 'En proceso')
-        .length;
+    final procesoCount = _pedidos.where((o) => o.estado == 'En proceso').length;
 
     final terminadosCount = _pedidos
         .where((o) => o.estado == 'Terminado')
@@ -438,7 +444,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xffF8FAFC),
-      
+
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -474,7 +480,10 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                       Stack(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.notifications_none, size: 28),
+                            icon: const Icon(
+                              Icons.notifications_none,
+                              size: 28,
+                            ),
                             onPressed: () {},
                           ),
                           Positioned(
@@ -511,148 +520,177 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
               const SizedBox(height: 20),
 
               /// BARRA DE BÚSQUEDA
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _searchController,
-                      focusNode: _searchFocusNode,
-                      decoration: InputDecoration(
-                        hintText: "Buscar cliente o pedido...",
-                        hintStyle: TextStyle(
-                          color: Colors.grey.shade400,
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: Color(0xff829AB1),
-                        ),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 20),
-                                onPressed: () {
-                                  setState(() {
-                                    _searchController.clear();
-                                    _sugerencias = [];
-                                    _showSuggestions = false;
-                                    _searchQuery = '';
-                                  });
-                                },
-                              )
-                            : null,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      onSubmitted: (_) => _performSearch(),
+                      child: TextField(
+                        controller: _searchController,
+                        focusNode: _searchFocusNode,
+                        decoration: InputDecoration(
+                          hintText: "Buscar cliente o pedido...",
+                          hintStyle: TextStyle(color: Colors.grey.shade400),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Color(0xff829AB1),
+                          ),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 20),
+                                  onPressed: () {
+                                    setState(() {
+                                      _searchController.clear();
+                                      _sugerencias = [];
+                                      _showSuggestions = false;
+                                      _searchQuery = '';
+                                    });
+                                  },
+                                )
+                              : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                        onSubmitted: (_) => _performSearch(),
+                      ),
                     ),
-                    
-                    if (_showSuggestions && _sugerencias.isNotEmpty)
-                      Container(
-                        constraints: const BoxConstraints(
-                          maxHeight: 200,
-                        ),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          physics: const ClampingScrollPhysics(),
-                          itemCount: _sugerencias.length > 5 ? 5 : _sugerencias.length,
-                          itemBuilder: (context, index) {
-                            final pedido = _sugerencias[index];
-                            return ListTile(
-                              dense: true,
-                              leading: const Icon(
-                                Icons.receipt_long,
-                                size: 18,
-                                color: Color(0xff6D3EFF),
-                              ),
-                              title: Text(
-                                pedido.clienteNombre,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xff102A43),
-                                ),
-                              ),
-                              subtitle: Text(
-                                '${pedido.id} • ${pedido.titulo ?? 'Sin título'}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade500,
-                                ),
-                              ),
-                              trailing: Chip(
-                                label: Text(
-                                  pedido.estado,
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                backgroundColor: _estadoColor(pedido.estado).withValues(alpha: 0.12),
-                                labelStyle: TextStyle(
-                                  color: _estadoColor(pedido.estado),
-                                ),
-                              ),
-                              onTap: () => _selectSuggestion(pedido),
-                            );
-                          },
-                        ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    height: 55,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: const Color(0xff6D3EFF),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.qr_code_scanner,
+                        size: 28,
+                        color: Colors.white,
                       ),
-                    
-                    if (_showSuggestions && _sugerencias.isEmpty && _searchQuery.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 20,
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 40,
-                              color: Colors.grey.shade300,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'No se encontraron pedidos para "$_searchQuery"',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.grey.shade500,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            TextButton(
-                              onPressed: _performSearch,
-                              child: const Text(
-                                'Ver todos los resultados',
-                                style: TextStyle(
-                                  color: Color(0xff6D3EFF),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const EscanearQrScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
+
+              /// SUGERENCIAS DE BÚSQUEDA
+              if (_showSuggestions && _sugerencias.isNotEmpty)
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    physics: const ClampingScrollPhysics(),
+                    itemCount: _sugerencias.length > 5
+                        ? 5
+                        : _sugerencias.length,
+                    itemBuilder: (context, index) {
+                      final pedido = _sugerencias[index];
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(
+                          Icons.receipt_long,
+                          size: 18,
+                          color: Color(0xff6D3EFF),
+                        ),
+                        title: Text(
+                          pedido.clienteNombre,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xff102A43),
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${pedido.id} • ${pedido.titulo ?? 'Sin título'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                        trailing: Chip(
+                          label: Text(
+                            pedido.estado,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          backgroundColor: _estadoColor(
+                            pedido.estado,
+                          ).withValues(alpha: 0.12),
+                          labelStyle: TextStyle(
+                            color: _estadoColor(pedido.estado),
+                          ),
+                        ),
+                        onTap: () => _selectSuggestion(pedido),
+                      );
+                    },
+                  ),
+                ),
+
+              if (_showSuggestions &&
+                  _sugerencias.isEmpty &&
+                  _searchQuery.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 20,
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.search_off,
+                        size: 40,
+                        color: Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No se encontraron pedidos para "$_searchQuery"',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      TextButton(
+                        onPressed: _performSearch,
+                        child: const Text(
+                          'Ver todos los resultados',
+                          style: TextStyle(
+                            color: Color(0xff6D3EFF),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               const SizedBox(height: 24),
 
               /// MÉTRICAS
@@ -746,6 +784,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                             },
                             true,
                           ),
+
                           /// 2. Ver Pedidos
                           _actionButton(
                             "Ver Pedidos",
@@ -758,7 +797,8 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                                   builder: (_) => PedidosScreen(
                                     pedidos: _pedidos,
                                     onNavigate: (pantalla, [pedidoId]) {
-                                      if (pantalla == 'status_management' && pedidoId != null) {
+                                      if (pantalla == 'status_management' &&
+                                          pedidoId != null) {
                                         final pedido = _pedidos.firstWhere(
                                           (p) => p.id == pedidoId,
                                           orElse: () => _pedidos.first,
@@ -768,9 +808,13 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                                           MaterialPageRoute(
                                             builder: (_) => DetallePedidoScreen(
                                               pedido: pedido,
-                                              onPedidoActualizado: (pedidoActualizado) {
-                                                _guardarPedido(pedidoActualizado.toJson());
-                                              },
+                                              onPedidoActualizado:
+                                                  (pedidoActualizado) {
+                                                    _guardarPedido(
+                                                      pedidoActualizado
+                                                          .toJson(),
+                                                    );
+                                                  },
                                             ),
                                           ),
                                         );
@@ -790,6 +834,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                             },
                             false,
                           ),
+
                           /// 3. Estantes Taller - ✅ CORREGIDO
                           _actionButton(
                             "Estantes Taller",
@@ -814,14 +859,19 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                                           MaterialPageRoute(
                                             builder: (_) => DetallePedidoScreen(
                                               pedido: pedido,
-                                              onPedidoActualizado: (pedidoActualizado) {
-                                                _guardarPedido(pedidoActualizado.toJson());
-                                              },
+                                              onPedidoActualizado:
+                                                  (pedidoActualizado) {
+                                                    _guardarPedido(
+                                                      pedidoActualizado
+                                                          .toJson(),
+                                                    );
+                                                  },
                                             ),
                                           ),
                                         );
                                       },
-                                      onEstantesActualizados: _actualizarEstantes,
+                                      onEstantesActualizados:
+                                          _actualizarEstantes,
                                     ),
                                   ),
                                 );
@@ -829,6 +879,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                             },
                             false,
                           ),
+
                           /// 4. Recordatorios
                           _actionButton(
                             "Recordatorios",
@@ -839,17 +890,6 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                             },
                             false,
                           ),
-                          IconButton(
-  icon: const Icon(Icons.qr_code_scanner, size: 28),
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const EscanearQrScreen(),
-      ),
-    );
-  },
-)
                         ],
                       ),
                     ],
@@ -944,8 +984,6 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
     );
   }
 
-
-
   Widget _actionButton(
     String text,
     IconData icon,
@@ -962,10 +1000,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
           borderRadius: BorderRadius.circular(20),
           gradient: isPrimary
               ? const LinearGradient(
-                  colors: [
-                    Color(0xff6D3EFF),
-                    Color(0xff4F2FFF),
-                  ],
+                  colors: [Color(0xff6D3EFF), Color(0xff4F2FFF)],
                 )
               : null,
           color: isPrimary ? null : Colors.white,
@@ -983,11 +1018,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 30,
-              color: isPrimary ? Colors.white : color,
-            ),
+            Icon(icon, size: 30, color: isPrimary ? Colors.white : color),
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -997,9 +1028,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isPrimary
-                      ? Colors.white
-                      : const Color(0xff23395B),
+                  color: isPrimary ? Colors.white : const Color(0xff23395B),
                 ),
               ),
             ),
@@ -1009,4 +1038,3 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
     );
   }
 }
-
