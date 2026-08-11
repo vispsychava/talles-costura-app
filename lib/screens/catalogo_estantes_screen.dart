@@ -131,12 +131,12 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
   }
 
   String _obtenerEstado(int ocupados, int capacidad) {
-    if (capacidad == 0) return 'Abierto';
-    if (ocupados == 0) return 'Abierto';
+    if (capacidad == 0) return 'Disponible';
+    if (ocupados == 0) return 'Disponible';
     final percentage = ocupados / capacidad;
     if (percentage >= 1.0) return 'Lleno';
     if (percentage >= 0.75) return 'Casi Lleno';
-    return 'Abierto';
+    return 'Disponible';
   }
 
   void abrirEstante(Estante estante) {
@@ -317,7 +317,7 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
   Widget build(BuildContext context) {
     final totalEstantes = _estantes.length;
     final disponiblesCount = _estantes
-        .where((e) => _obtenerEstado(e.ocupados, e.capacidad) == "Abierto")
+        .where((e) => _obtenerEstado(e.ocupados, e.capacidad) == "Disponible")
         .length;
     final casiLlenosCount = _estantes
         .where((e) => _obtenerEstado(e.ocupados, e.capacidad) == "Casi Lleno")
@@ -399,7 +399,7 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
                                 "DISPONIBLES: $disponiblesCount",
                                 const Color(0xff15803D),
                                 const Color(0xffDCFCE7),
-                                'Abierto',
+                                'Disponible',
                               ),
                               _chipEstadistica(
                                 "CASI LLENOS: $casiLlenosCount",
