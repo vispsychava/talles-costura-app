@@ -8,8 +8,7 @@ import 'detalle_pedido_screen.dart';
 
 class RecordatoriosScreen extends StatefulWidget {
   final List<Recordatorio> recordatorios;
-  final List<Pedido> pedidos;
-  final Function(String, String) onAgregarRecordatorio;
+  final List<Pedido> pedidos;final Future<void> Function(String, String, DateTime) onAgregarRecordatorio;
   final Function(String) onCompletarRecordatorio;
   final List<Estante> estantes;
   final Function(Map<String, dynamic>) onGuardarPedido;
@@ -84,7 +83,8 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
 
           todosItems.add(Recordatorio(
             id: 'pedido-${pedido.id}',
-            pedidoId: pedido.id,
+            pedidoId: null,
+            clienteNombre: pedido.clienteNombre,
             titulo: '📦 ${pedido.titulo}',
             descripcion: 'Pedido #${pedido.id}',
             fechaRecordatorio: fechaEntrega,
@@ -122,15 +122,35 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
       return;
     }
 
-    widget.onAgregarRecordatorio(
-      tareaController.text,
-      clienteController.text,
-    );
+   await widget.onAgregarRecordatorio(
+    tareaController.text,
+    clienteController.text,
+    _fechaSeleccionada!,
+  );
 
+  tareaController.clear();
+  clienteController.clear();
+  horaController.clear();
+  fechaController.clear();
+  _fechaSeleccionada = null;
+
+  if (!mounted) return;
+
+  setState(() {
+    mostrarFormulario = false;
+  });
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('¡Recordatorio creado con éxito!'),
+      backgroundColor: Colors.green,
+    ),
+  );
   final nuevoRecordatorio = Recordatorio(
     id: DateTime.now().millisecondsSinceEpoch.toString(),
     titulo: tareaController.text,
-    pedidoId: clienteController.text,
+    pedidoId: null,
+    clienteNombre: clienteController.text,
     fechaRecordatorio: _fechaSeleccionada!,
     completado: false,
     fechaCreacion: DateTime.now(),
@@ -508,7 +528,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
               onTap: () {
                 if (esPedido) {
                   final pedidoId = r.pedidoId;
-                  _navegarADetallePedido(pedidoId);
+                  _navegarADetallePedido(pedidoId.toString());
                 } else {
                   if (!r.completado) {
                     widget.onCompletarRecordatorio(r.id);
@@ -568,7 +588,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Cliente: ${r.pedidoId}',
+                            'Cliente: ${r.clienteNombre}',
                             style: TextStyle(
                               fontSize: 14,
                               color: r.completado ? Colors.grey.shade500 : const Color(0xff64748B),

@@ -1,6 +1,7 @@
 class Recordatorio {
   final String id;
-  final String pedidoId;
+  final int? pedidoId;             
+  final String? clienteNombre;  
   final String titulo;
   final String? descripcion;
   final DateTime fechaRecordatorio;
@@ -11,6 +12,7 @@ class Recordatorio {
   Recordatorio({
     required this.id,
     required this.pedidoId,
+    required this.clienteNombre,
     required this.titulo,
     this.descripcion,
     required this.fechaRecordatorio,
@@ -33,6 +35,7 @@ class Recordatorio {
   factory Recordatorio.fromJson(Map<String, dynamic> json) => Recordatorio(
     id: json['id'],
     pedidoId: json['pedido_id'],
+    clienteNombre: json['cliente_nombre'],
     titulo: json['titulo'],
     descripcion: json['descripcion'],
     fechaRecordatorio: DateTime.parse(json['fecha_recordatorio']),

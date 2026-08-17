@@ -11,6 +11,8 @@ import 'recordatorios_screen.dart';
 import 'detalle_pedido_screen.dart';
 import '../models/medida.dart';
 import '../services/supabase_service.dart'; // ✅ Agregar import
+import '../services/recordatorio_service.dart';
+
 
 class PanelPrincipalScreen extends StatefulWidget {
   final List<Pedido> pedidos;
@@ -32,7 +34,8 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
   int notificacionesCount = 3;
   late List<Pedido> _pedidos;
   late List<Estante> _estantes;
-  
+  late List<Recordatorio> _recordatorios;
+
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   bool _showSuggestions = false;
@@ -44,8 +47,10 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
     super.initState();
     _pedidos = List.from(widget.pedidos);
     _estantes = List.from(widget.estantes);
+    _recordatorios = List.from(widget.recordatorios);
     _actualizarEstantesDesdePedidos();
     _searchController.addListener(_onSearchChanged);
+      _cargarDatosYActualizar();
   }
 
   @override
@@ -137,7 +142,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
     );
   }
 
-  void _selectSuggestion(Pedido pedido) {
+void _selectSuggestion(Pedido pedido) {
     setState(() {
       _showSuggestions = false;
       _searchController.text = '';
@@ -147,35 +152,10 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PedidosScreen(
-          pedidos: _pedidos,
-          onNavigate: (pantalla, [pedidoId]) {
-            if (pantalla == 'status_management' && pedidoId != null) {
-              final pedido = _pedidos.firstWhere(
-                (p) => p.id == pedidoId,
-                orElse: () => _pedidos.first,
-              );
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => DetallePedidoScreen(
-                    pedido: pedido,
-                    onPedidoActualizado: (pedidoActualizado) {
-                      _guardarPedido(pedidoActualizado.toJson());
-                    },
-                  ),
-                ),
-              );
-            }
-          },
-          filtroInicial: 'Todos',
-          estantes: _estantes,
-          onGuardarPedido: _guardarPedido,
-          onRefresh: () {
-            setState(() {
-              _pedidos = List.from(_pedidos);
-              _actualizarEstantesDesdePedidos();
-            });
+        builder: (_) => DetallePedidoScreen(
+          pedido: pedido,
+          onPedidoActualizado: (pedidoActualizado) {
+            _guardarPedido(pedidoActualizado.toJson());
           },
         ),
       ),
@@ -185,7 +165,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
   List<MapEntry<String, dynamic>> get proximosEventos {
     List<MapEntry<String, dynamic>> eventos = [];
     
-    for (var recordatorio in widget.recordatorios) {
+    for (var recordatorio in _recordatorios) {
       if (!recordatorio.completado) {
         eventos.add(MapEntry('recordatorio', recordatorio));
       }
@@ -254,16 +234,57 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
     try {
       final supabaseService = SupabaseService();
       final pedidosSupabase = await supabaseService.obtenerPedidos();
-      if (pedidosSupabase.isNotEmpty) {
-        setState(() {
+      final recordatoriosSupabase = await supabaseService.obtenerRecordatorios();
+      setState(() {
+        if (pedidosSupabase.isNotEmpty) {
           _pedidos = pedidosSupabase;
-          _actualizarEstantesDesdePedidos();
-        });
-      }
+        }
+        _recordatorios = recordatoriosSupabase; // 👈 ya no depende de si hay pedidos
+        _actualizarEstantesDesdePedidos();
+      });
     } catch (e) {
       print('Error al cargar datos: $e');
     }
   }
+
+      Future<void> _agregarRecordatorio(String titulo, String cliente, DateTime fecha) async {
+    final nuevo = Recordatorio(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      pedidoId: null,
+      clienteNombre: cliente,
+      titulo: titulo,
+      descripcion: null,
+      fechaRecordatorio: fecha,
+      completado: false,
+      fechaCreacion: DateTime.now(),
+    );
+
+    final exito = await SupabaseService().insertarRecordatorio(nuevo);
+
+    if (exito) {
+      await _cargarDatosYActualizar();
+     NotificationService().scheduleReminderNotification(nuevo); 
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo guardar el recordatorio'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _completarRecordatorio(String id) async {
+    final exito = await SupabaseService().completarRecordatorio(id);
+    if (exito) {
+      await _cargarDatosYActualizar();
+      NotificationService().cancelNotification(id);
+    }
+  }
+
+
 
   void _guardarPedido(Map<String, dynamic> pedidoData) {
     setState(() {
@@ -400,21 +421,21 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
     );
   }
 
-  void _navigateToRecordatorios() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RecordatoriosScreen(
-          recordatorios: widget.recordatorios,
-          pedidos: _pedidos,
-          onAgregarRecordatorio: (titulo, cliente) {},
-          onCompletarRecordatorio: (id) {},
-          estantes: _estantes,
-          onGuardarPedido: _guardarPedido,
-        ),
+void _navigateToRecordatorios() {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => RecordatoriosScreen(
+        recordatorios: _recordatorios,              // 👈 antes decía widget.recordatorios
+        pedidos: _pedidos,
+        onAgregarRecordatorio: _agregarRecordatorio, // 👈 antes era (titulo, cliente) {}
+        onCompletarRecordatorio: _completarRecordatorio, // 👈 antes era (id) {}
+        estantes: _estantes,
+        onGuardarPedido: _guardarPedido,
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {

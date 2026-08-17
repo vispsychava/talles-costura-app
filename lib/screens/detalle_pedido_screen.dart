@@ -531,6 +531,8 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
   Widget build(BuildContext context) {
     final pedido = _pedidoActual;
     final isPaid = (pedido.saldo ?? 0) == 0;
+    print('📏 MEDIDAS DEL PEDIDO: ${pedido.medidas}');
+  print('📏 CANTIDAD DE MEDIDAS: ${pedido.medidas?.length ?? 0}');
 final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
   
   final String entregaFormateada = pedido.fechaEntrega != null 
@@ -781,7 +783,8 @@ final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
             const SizedBox(height: 16),
 
             /// MEDIDAS
-            if (pedido.medidas != null && pedido.medidas!.isNotEmpty)
+            if (pedido.medidas!= null && pedido.medidas!.isNotEmpty)
+            
               tarjetaInfo(
                 titulo: "Mediciones",
                 icon: Icons.straighten,

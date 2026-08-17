@@ -87,7 +87,7 @@ class PedidoService {
             *,
             estantes(id_estante, codigo_estante, capacidad),
             prendas(id_prenda, nombre, descripcion),
-            medidas(*)
+            medidas_pedido(id_medida_pedido, valor, tipo_medidas(nombre))
           ''');
 
       List<Pedido> pedidos = [];
@@ -115,7 +115,7 @@ class PedidoService {
             *,
             estantes(id_estante, codigo_estante, capacidad),
             prendas(id_prenda, nombre, descripcion),
-            medidas(*)
+            medidas_pedido(id_medida_pedido, valor, tipo_medidas(nombre))
           ''')
           .eq('codigo_pedido', id)
           .maybeSingle();
@@ -248,6 +248,7 @@ class PedidoService {
             *,
             estantes(id_estante, codigo_estante, capacidad),
             prendas(id_prenda, nombre, descripcion)
+            medidas_pedido(id_medida_pedido, valor, tipo_medidas(nombre))
           ''')
           .eq('estado_pedido', estado)
           .order('fecha_creacion', ascending: false);
@@ -276,7 +277,8 @@ class PedidoService {
           .select('''
             *,
             estantes(id_estante, codigo_estante, capacidad),
-            prendas(id_prenda, nombre, descripcion)
+            prendas(id_prenda, nombre, descripcion),
+            medidas_pedido(id_medida_pedido, valor, tipo_medidas(nombre))
           ''')
           .ilike('nombre_cliente', '%$clienteNombre%')
           .order('fecha_creacion', ascending: false);
@@ -313,23 +315,18 @@ class PedidoService {
 
     // Procesar medidas si existen
     List<Medida> medidas = [];
-    if (json['medidas'] != null && json['medidas'] is List) {
-      medidas = (json['medidas'] as List).map((m) => Medida(
-        id: m['id_medida']?.toString() ?? '',
-        pedidoId: json['codigo_pedido'] ?? '',
-        clienteNombre: json['nombre_cliente'] ?? '',
-        tipoMedida: m['tipo_medida'] ?? '',
-        valor: (m['valor'] as num?)?.toDouble() ?? 0.0,
-        observaciones: m['observaciones'] ?? '',
-        fechaCreacion: m['fecha_creacion'] != null 
-            ? DateTime.parse(m['fecha_creacion']) 
-            : DateTime.now(),
-        fechaActualizacion: m['fecha_actualizacion'] != null 
-            ? DateTime.parse(m['fecha_actualizacion']) 
-            : null,
-      )).toList();
-    }
-
+        if (json['medidas_pedido'] != null && json['medidas_pedido'] is List) {
+        medidas = (json['medidas_pedido'] as List).map((m) => Medida(
+          id: m['id_medida_pedido']?.toString() ?? '',
+          pedidoId: json['codigo_pedido'] ?? '',
+          clienteNombre: json['nombre_cliente'] ?? '',
+          tipoMedida: m['tipo_medidas']?['nombre'] ?? '', // 👈 aquí está el nombre
+          valor: (m['valor'] as num?)?.toDouble() ?? 0.0,
+          observaciones: '',
+          fechaCreacion: DateTime.now(),
+          fechaActualizacion: null,
+        )).toList();
+      }
     // Parsear fecha de entrega
     DateTime? fechaEntrega;
     if (json['fecha_entrega'] != null && json['fecha_entrega'].isNotEmpty) {
