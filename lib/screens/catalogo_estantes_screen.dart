@@ -31,11 +31,11 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
   String _filtroEstado = 'Todos';
 
   List<Estante> get _estantesFiltrados {
-  if (_filtroEstado == 'Todos') return _estantes;
-  return _estantes.where((e) => 
-    _obtenerEstado(e.ocupados, e.capacidad) == _filtroEstado
-  ).toList();
-}
+    if (_filtroEstado == 'Todos') return _estantes;
+    return _estantes
+        .where((e) => _obtenerEstado(e.ocupados, e.capacidad) == _filtroEstado)
+        .toList();
+  }
 
   @override
   void initState() {
@@ -50,7 +50,8 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
   @override
   void didUpdateWidget(CatalogoEstantesScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.pedidos != oldWidget.pedidos || widget.estantes != oldWidget.estantes) {
+    if (widget.pedidos != oldWidget.pedidos ||
+        widget.estantes != oldWidget.estantes) {
       _estantes = List.from(widget.estantes);
       _pedidos = List.from(widget.pedidos);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -129,20 +130,20 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
     }
   }
 
-String _obtenerEstado(int ocupados, int capacidad) {
-  if (capacidad == 0) return 'Abierto';
-  if (ocupados == 0) return 'Abierto';
-  final percentage = ocupados / capacidad;
-  if (percentage >= 1.0) return 'Lleno';
-  if (percentage >= 0.75) return 'Casi Lleno';
-  return 'Abierto';
-}
+  String _obtenerEstado(int ocupados, int capacidad) {
+    if (capacidad == 0) return 'Disponible';
+    if (ocupados == 0) return 'Disponible';
+    final percentage = ocupados / capacidad;
+    if (percentage >= 1.0) return 'Lleno';
+    if (percentage >= 0.75) return 'Casi Lleno';
+    return 'Disponible';
+  }
 
   void abrirEstante(Estante estante) {
     // ✅ Buscar pedidos por código del estante (estante.id ya es el código)
-    final pedidosActivos = _pedidos.where(
-      (p) => p.estanteId == estante.id && p.estado != "Entregado",
-    ).toList();
+    final pedidosActivos = _pedidos
+        .where((p) => p.estanteId == estante.id && p.estado != "Entregado")
+        .toList();
 
     // 🔍 DEPURACIÓN: Ver qué valores tenemos
     print('🔍 Estante ID (código): ${estante.id}');
@@ -177,9 +178,7 @@ String _obtenerEstado(int ocupados, int capacidad) {
                       ),
                       Text(
                         "${pedidosActivos.length} de ${estante.capacidad} prendas almacenadas",
-                        style: const TextStyle(
-                          color: Color(0xff64748B),
-                        ),
+                        style: const TextStyle(color: Color(0xff64748B)),
                       ),
                     ],
                   ),
@@ -200,60 +199,54 @@ String _obtenerEstado(int ocupados, int capacidad) {
                         ),
                       )
                     : pedidosActivos.isEmpty
-                        ? const Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.layers,
-                                  size: 60,
-                                  color: Colors.grey,
-                                ),
-                                SizedBox(height: 10),
-                                Text(
-                                  "Este estante está vacío",
-                                  style: TextStyle(
-                                    color: Color(0xff64748B),
-                                  ),
-                                ),
-                              ],
+                    ? const Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.layers, size: 60, color: Colors.grey),
+                            SizedBox(height: 10),
+                            Text(
+                              "Este estante está vacío",
+                              style: TextStyle(color: Color(0xff64748B)),
                             ),
-                          )
-                        : ListView.builder(
-                            itemCount: pedidosActivos.length,
-                            itemBuilder: (context, index) {
-                              final pedido = pedidosActivos[index];
-                              return Card(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: pedidosActivos.length,
+                        itemBuilder: (context, index) {
+                          final pedido = pedidosActivos[index];
+                          return Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ListTile(
+                              title: Text(
+                                pedido.titulo ?? 'Sin título',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xff102A43),
                                 ),
-                                child: ListTile(
-                                  title: Text(
-                                    pedido.titulo ?? 'Sin título',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xff102A43),
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    "Cliente: ${pedido.clienteNombre}",
-                                    style: const TextStyle(
-                                      color: Color(0xff64748B),
-                                    ),
-                                  ),
-                                  trailing: const Icon(
-                                    Icons.arrow_forward_ios,
-                                    size: 16,
-                                    color: Color(0xff829AB1),
-                                  ),
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    widget.onNavigateToDetallePedido(pedido.id);
-                                  },
+                              ),
+                              subtitle: Text(
+                                "Cliente: ${pedido.clienteNombre}",
+                                style: const TextStyle(
+                                  color: Color(0xff64748B),
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                              trailing: const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Color(0xff829AB1),
+                              ),
+                              onTap: () {
+                                Navigator.pop(context);
+                                widget.onNavigateToDetallePedido(pedido.id);
+                              },
+                            ),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -278,7 +271,7 @@ String _obtenerEstado(int ocupados, int capacidad) {
 
   Color estadoColor(String estado) {
     switch (estado) {
-      case "Abierto":
+      case "Disponible":
         return Colors.green;
       case "Casi Lleno":
         return Colors.orange;
@@ -289,41 +282,49 @@ String _obtenerEstado(int ocupados, int capacidad) {
     }
   }
 
- Widget _chipEstadistica(String texto, Color colorTexto, Color bg, String filtro) {
-  final isSelected = _filtroEstado == filtro;
-  return GestureDetector(
-    onTap: () {
-      setState(() {
-        _filtroEstado = _filtroEstado == filtro ? 'Todos' : filtro;
-      });
-    },
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: isSelected ? colorTexto : Colors.transparent,
-          width: 2,
+  Widget _chipEstadistica(
+    String texto,
+    Color colorTexto,
+    Color bg,
+    String filtro,
+  ) {
+    final isSelected = _filtroEstado == filtro;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _filtroEstado = _filtroEstado == filtro ? 'Todos' : filtro;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: isSelected ? colorTexto : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Text(
+          texto,
+          style: TextStyle(color: colorTexto, fontWeight: FontWeight.bold),
         ),
       ),
-      child: Text(
-        texto,
-        style: TextStyle(
-          color: colorTexto,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ),
-  );
-}
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final totalEstantes = _estantes.length;
-    final disponiblesCount = _estantes.where((e) => _obtenerEstado(e.ocupados, e.capacidad) == "Abierto").length;
-    final casiLlenosCount = _estantes.where((e) => _obtenerEstado(e.ocupados, e.capacidad) == "Casi Lleno").length;
-    final llenosCount = _estantes.where((e) => _obtenerEstado(e.ocupados, e.capacidad) == "Lleno").length;
+    final disponiblesCount = _estantes
+        .where((e) => _obtenerEstado(e.ocupados, e.capacidad) == "Disponible")
+        .length;
+    final casiLlenosCount = _estantes
+        .where((e) => _obtenerEstado(e.ocupados, e.capacidad) == "Casi Lleno")
+        .length;
+    final llenosCount = _estantes
+        .where((e) => _obtenerEstado(e.ocupados, e.capacidad) == "Lleno")
+        .length;
 
     return Scaffold(
       backgroundColor: const Color(0xffF8FAFC),
@@ -334,16 +335,13 @@ String _obtenerEstado(int ocupados, int capacidad) {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => AgregarEstanteScreen(
-                onAgregarEstante: _agregarEstante,
-              ),
+              builder: (_) =>
+                  AgregarEstanteScreen(onAgregarEstante: _agregarEstante),
             ),
           );
         },
         icon: const Icon(Icons.add),
-        label: const Text(
-          "Agregar Estante",
-        ),
+        label: const Text("Agregar Estante"),
       ),
       body: SafeArea(
         child: Column(
@@ -354,11 +352,7 @@ String _obtenerEstado(int ocupados, int capacidad) {
               padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                border: Border(
-                  bottom: BorderSide(
-                    color: Color(0xffE5E7EB),
-                  ),
-                ),
+                border: Border(bottom: BorderSide(color: Color(0xffE5E7EB))),
               ),
               child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -374,10 +368,7 @@ String _obtenerEstado(int ocupados, int capacidad) {
                   SizedBox(height: 6),
                   Text(
                     "Control de almacenamiento de prendas del taller",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xff94A3B8),
-                    ),
+                    style: TextStyle(fontSize: 16, color: Color(0xff94A3B8)),
                   ),
                 ],
               ),
@@ -398,30 +389,30 @@ String _obtenerEstado(int ocupados, int capacidad) {
                             spacing: 12,
                             runSpacing: 12,
                             children: [
-                             _chipEstadistica(
-                            "ESTANTES TOTALES: $totalEstantes",
-                            const Color(0xff6D3EFF),
-                            const Color(0xffEEF2FF),
-                            'Todos',
-                          ),
-                          _chipEstadistica(
-                            "DISPONIBLES: $disponiblesCount",
-                            const Color(0xff15803D),
-                            const Color(0xffDCFCE7),
-                            'Abierto',
-                          ),
-                          _chipEstadistica(
-                            "CASI LLENOS: $casiLlenosCount",
-                            const Color(0xffD97706),
-                            const Color(0xffFEF3C7),
-                            'Casi Lleno',
-                          ),
-                          _chipEstadistica(
-                            "SATURADOS: $llenosCount",
-                            const Color(0xffDC2626),
-                            const Color(0xffFEE2E2),
-                            'Lleno',
-                          ),
+                              _chipEstadistica(
+                                "ESTANTES TOTALES: $totalEstantes",
+                                const Color(0xff6D3EFF),
+                                const Color(0xffEEF2FF),
+                                'Todos',
+                              ),
+                              _chipEstadistica(
+                                "DISPONIBLES: $disponiblesCount",
+                                const Color(0xff15803D),
+                                const Color(0xffDCFCE7),
+                                'Disponible',
+                              ),
+                              _chipEstadistica(
+                                "CASI LLENOS: $casiLlenosCount",
+                                const Color(0xffD97706),
+                                const Color(0xffFEF3C7),
+                                'Casi Lleno',
+                              ),
+                              _chipEstadistica(
+                                "SATURADOS: $llenosCount",
+                                const Color(0xffDC2626),
+                                const Color(0xffFEE2E2),
+                                'Lleno',
+                              ),
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -448,15 +439,19 @@ String _obtenerEstado(int ocupados, int capacidad) {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: _estantesFiltrados.length,
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 1.05,
-                            ),
-                               itemBuilder: (context, index) {
-                              final estante = _estantesFiltrados[index];      
-                              final estado = _obtenerEstado(estante.ocupados, estante.capacidad);
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 1.05,
+                                ),
+                            itemBuilder: (context, index) {
+                              final estante = _estantesFiltrados[index];
+                              final estado = _obtenerEstado(
+                                estante.ocupados,
+                                estante.capacidad,
+                              );
                               final usagePercent = estante.capacidad > 0
                                   ? estante.ocupados / estante.capacidad
                                   : 0.0;
@@ -474,17 +469,21 @@ String _obtenerEstado(int ocupados, int capacidad) {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.04),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.04,
+                                        ),
                                         blurRadius: 12,
                                         offset: const Offset(0, 4),
-                                      )
+                                      ),
                                     ],
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
                                           Expanded(
                                             child: Text(
@@ -505,8 +504,11 @@ String _obtenerEstado(int ocupados, int capacidad) {
                                               vertical: 6,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: estadoColor(estado).withValues(alpha: 0.12),
-                                              borderRadius: BorderRadius.circular(30),
+                                              color: estadoColor(
+                                                estado,
+                                              ).withValues(alpha: 0.12),
+                                              borderRadius:
+                                                  BorderRadius.circular(30),
                                             ),
                                             child: Text(
                                               estado.toUpperCase(),
@@ -529,7 +531,8 @@ String _obtenerEstado(int ocupados, int capacidad) {
                                       ),
                                       const SizedBox(height: 8),
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
                                           const SizedBox(),
                                           Text(
@@ -542,7 +545,7 @@ String _obtenerEstado(int ocupados, int capacidad) {
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 12),                                
+                                      const SizedBox(height: 12),
                                     ],
                                   ),
                                 ),

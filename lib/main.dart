@@ -48,53 +48,55 @@ class _TallerCosturaAppState extends State<TallerCosturaApp> {
     });
   }
 
-void _manejarDeepLink(Uri uri) async {
-  if (uri.scheme == 'tallercostura' && uri.host == 'pedido') {
-    final codigoPedido = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
-    if (codigoPedido == null) return;
+  void _manejarDeepLink(Uri uri) async {
+    if (uri.scheme == 'tallercostura' && uri.host == 'pedido') {
+      final codigoPedido = uri.pathSegments.isNotEmpty
+          ? uri.pathSegments.first
+          : null;
+      if (codigoPedido == null) return;
 
-    print('🔗 Deep link recibido: $codigoPedido');
+      print('🔗 Deep link recibido: $codigoPedido');
 
-    // Extraemos los datos que vienen directamente en el QR por si falla Supabase o no hay internet
-    final clienteNombreQr = uri.queryParameters['cliente'] ?? 'Cliente Desconocido';
-    final fechaEntregaStr = uri.queryParameters['entrega'];
+      // Extraemos los datos que vienen directamente en el QR por si falla Supabase o no hay internet
+      final clienteNombreQr =
+          uri.queryParameters['cliente'] ?? 'Cliente Desconocido';
+      final fechaEntregaStr = uri.queryParameters['entrega'];
 
-    DateTime? fechaEntregaQr;
-    if (fechaEntregaStr != null) {
-      fechaEntregaQr = DateTime.tryParse(fechaEntregaStr);
-    }
+      DateTime? fechaEntregaQr;
+      if (fechaEntregaStr != null) {
+        fechaEntregaQr = DateTime.tryParse(fechaEntregaStr);
+      }
 
-    // 1. Intentamos obtener el pedido completo desde Supabase
-    Pedido? pedido = await _pedidoService.obtenerPedidoPorId(codigoPedido);
+      // 1. Intentamos obtener el pedido completo desde Supabase
+      Pedido? pedido = await _pedidoService.obtenerPedidoPorId(codigoPedido);
 
-    // 2. Fallback: Si no lo encuentra en internet, armamos el pedido con los datos del QR
-  pedido ??= Pedido(
-  id: codigoPedido,
-  clienteNombre: clienteNombreQr,
-  clienteTelefono: '', // <-- Agrega esta línea con un texto vacío o por defecto
-  fechaEntrega: fechaEntregaQr,
-  prendas: [],
-  estado: 'Escaneado',
- fechaPedido: DateTime.now(),
-  
-  // Si tu modelo te pide algún otro parámetro obligatorio (ej. fechaCreacion, total, etc.), 
-  // agrégalos aquí también con valores por defecto.
-);
+      // 2. Fallback: Si no lo encuentra en internet, armamos el pedido con los datos del QR
+      pedido ??= Pedido(
+        id: codigoPedido,
+        clienteNombre: clienteNombreQr,
+        clienteTelefono:
+            '', // <-- Agrega esta línea con un texto vacío o por defecto
+        fechaEntrega: fechaEntregaQr,
+        prendas: [],
+        estado: 'Escaneado',
+        fechaPedido: DateTime.now(),
 
-    // 3. Pequeño retardo para asegurar que el Navigator y MaterialApp ya se dibujaron
-    await Future.delayed(const Duration(milliseconds: 300));
+        // Si tu modelo te pide algún otro parámetro obligatorio (ej. fechaCreacion, total, etc.),
+        // agrégalos aquí también con valores por defecto.
+      );
 
-    // 4. Abrimos la pantalla de detalle
-    _navigatorKey.currentState?.push(
-      MaterialPageRoute(
-        builder: (_) => DetallePedidoScreen(
-          pedido: pedido!,
-          onPedidoActualizado: (_) {},
+      // 3. Pequeño retardo para asegurar que el Navigator y MaterialApp ya se dibujaron
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // 4. Abrimos la pantalla de detalle
+      _navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (_) =>
+              DetallePedidoScreen(pedido: pedido!, onPedidoActualizado: (_) {}),
         ),
-      ),
-    );
+      );
+    }
   }
-}
 
   Future<Map<String, List<dynamic>>> _cargarDatos() async {
     try {
@@ -131,7 +133,7 @@ void _manejarDeepLink(Uri uri) async {
     return MaterialApp(
       navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
-      title: 'Talles Costura',
+      title: 'Taller Costura',
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.indigo,
@@ -143,9 +145,7 @@ void _manejarDeepLink(Uri uri) async {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
               body: Center(
-                child: CircularProgressIndicator(
-                  color: Colors.indigo,
-                ),
+                child: CircularProgressIndicator(color: Colors.indigo),
               ),
             );
           }
@@ -156,16 +156,26 @@ void _manejarDeepLink(Uri uri) async {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 60,
+                      color: Colors.red,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'Error al conectar con la base de datos',
-                      style: TextStyle(fontSize: 18, color: Colors.grey.shade700),
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey.shade700,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       snapshot.error.toString(),
-                      style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade500,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
@@ -173,7 +183,9 @@ void _manejarDeepLink(Uri uri) async {
                       onPressed: () {
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (_) => const TallerCosturaApp()),
+                          MaterialPageRoute(
+                            builder: (_) => const TallerCosturaApp(),
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -190,7 +202,8 @@ void _manejarDeepLink(Uri uri) async {
 
           final datos = snapshot.data!;
           final pedidos = datos['pedidos'] as List<Pedido>? ?? [];
-          final recordatorios = datos['recordatorios'] as List<Recordatorio>? ?? [];
+          final recordatorios =
+              datos['recordatorios'] as List<Recordatorio>? ?? [];
           final estantes = datos['estantes'] as List<Estante>? ?? [];
 
           return PanelPrincipalScreen(

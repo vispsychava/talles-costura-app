@@ -25,8 +25,8 @@ dependencies:
   # Almacenamiento local
   shared_preferences: ^2.3.0
   
-  # Utilidades - ACTUALIZADO a la versión compatible
-  intl: ^0.20.2  # CAMBIADO de 0.19.0 a 0.20.2
+  # Utilidades
+  intl: ^0.20.2
   
   # Imágenes
   image_picker: ^1.1.0
@@ -37,23 +37,28 @@ dependencies:
   # Zonas horarias
   timezone: ^0.9.4
 
-  # ✅ QR
+  # QR
   qr_flutter: ^4.1.0
 
-  # ✅ Compartir/guardar imagen
+  # Compartir/guardar imagen
   screenshot: ^3.0.0
   share_plus: ^10.0.0
   path_provider: ^2.1.0
 
-  # ✅ Deep links
+  # Deep links
   app_links: ^7.2.1
   mobile_scanner: ^7.4.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
+  flutter_launcher_icons: ^0.14.4
   flutter_lints: ^6.0.0
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/tallerLogo.png"
 
 flutter:
   uses-material-design: true

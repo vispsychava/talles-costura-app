@@ -36,153 +36,150 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
     estadoSeleccionado = _pedidoActual.estado;
   }
 
- void _mostrarModalPago() {
-  final pagoController = TextEditingController(); // ✅ controller
-  montoPago = 0; // ✅ resetear a 0
-
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (_) {
-      return Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 20,
-          right: 20,
-          top: 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 60,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+  void _mostrarModalPago() {
+    final pagoController = TextEditingController(); // ✅ controller
+    montoPago = 0; // ✅ resetear a 0
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Registrar Pago',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                color: Color(0xff102A43),
+              const SizedBox(height: 20),
+              const Text(
+                'Registrar Pago',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: Color(0xff102A43),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Cliente: ${_pedidoActual.clienteNombre}',
-              style: TextStyle(
-                color: Colors.grey.shade600,
+              const SizedBox(height: 8),
+              Text(
+                'Cliente: ${_pedidoActual.clienteNombre}',
+                style: TextStyle(color: Colors.grey.shade600),
               ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: pagoController, // ✅ controller
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Monto a pagar',
-                hintText: '\$0.00',
-                prefixIcon: const Icon(Icons.attach_money),
-                border: OutlineInputBorder(
+              const SizedBox(height: 20),
+              TextField(
+                controller: pagoController, // ✅ controller
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Monto a pagar',
+                  hintText: '\$0.00',
+                  prefixIcon: const Icon(Icons.attach_money),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                ),
+                onChanged: (value) {
+                  montoPago = double.tryParse(value) ?? 0; // ✅ default 0
+                },
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xff6D3EFF).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Saldo pendiente:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xff102A43),
+                      ),
+                    ),
+                    Text(
+                      '\$${(_pedidoActual.saldo ?? 0).toStringAsFixed(2)} MXN',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xff6D3EFF),
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              onChanged: (value) {
-                montoPago = double.tryParse(value) ?? 0; // ✅ default 0
-              },
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xff6D3EFF).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              const SizedBox(height: 20),
+              Row(
                 children: [
-                  const Text(
-                    'Saldo pendiente:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xff102A43),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Cancelar'),
                     ),
                   ),
-                  Text(
-                    '\$${(_pedidoActual.saldo ?? 0).toStringAsFixed(2)} MXN',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xff6D3EFF),
-                      fontSize: 16,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _registrarPago(montoPago);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xff6D3EFF),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Confirmar Pago'),
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.grey.shade300),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text('Cancelar'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _registrarPago(montoPago);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xff6D3EFF),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text('Confirmar Pago'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      );
-    },
-  );
-}
-        void _compartirEtiqueta() async {
-        final imagen = await _screenshotController.capture();
-        if (imagen == null) return;
-
-        final dir = await getTemporaryDirectory();
-        final file = File('${dir.path}/etiqueta_${_pedidoActual.id}.png');
-        await file.writeAsBytes(imagen);
-
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: 'Etiqueta del pedido ${_pedidoActual.id}',
+              const SizedBox(height: 20),
+            ],
+          ),
         );
-      }
+      },
+    );
+  }
+
+  void _compartirEtiqueta() async {
+    final imagen = await _screenshotController.capture();
+    if (imagen == null) return;
+
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/etiqueta_${_pedidoActual.id}.png');
+    await file.writeAsBytes(imagen);
+
+    await Share.shareXFiles([
+      XFile(file.path),
+    ], text: 'Etiqueta del pedido ${_pedidoActual.id}');
+  }
 
   void _registrarPago(double monto) async {
     print('Registrando pago para pedido ID: ${_pedidoActual.id}');
@@ -240,7 +237,13 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
   }
 
   void _mostrarModalEstado() {
-    final estados = ['Sin empezar', 'En proceso', 'Terminado', 'Entregado', 'Atrasado'];
+    final estados = [
+      'Sin empezar',
+      'En proceso',
+      'Terminado',
+      'Entregado',
+      'Atrasado',
+    ];
 
     showModalBottomSheet(
       context: context,
@@ -289,13 +292,21 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
                   title: Text(
                     estado,
                     style: TextStyle(
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? const Color(0xff6D3EFF) : const Color(0xff102A43),
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: isSelected
+                          ? const Color(0xff6D3EFF)
+                          : const Color(0xff102A43),
                     ),
                   ),
                   trailing: isSelected
                       ? const Icon(Icons.check_circle, color: Color(0xff6D3EFF))
                       : null,
+                  onTap: () {
+                    _actualizarEstado(estado);
+                    //Navigator.pop(context); <<<<<<<<<<<<<<-----------------------
+                  },
                 );
               }).toList(),
               const SizedBox(height: 10),
@@ -379,7 +390,8 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              if (_pedidoActual.prendas == null || _pedidoActual.prendas!.isEmpty)
+              if (_pedidoActual.prendas == null ||
+                  _pedidoActual.prendas!.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 40),
                   child: Column(
@@ -413,7 +425,9 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: const Color(0xff6D3EFF).withValues(alpha: 0.1),
+                              color: const Color(
+                                0xff6D3EFF,
+                              ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
@@ -531,17 +545,15 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
   Widget build(BuildContext context) {
     final pedido = _pedidoActual;
     final isPaid = (pedido.saldo ?? 0) == 0;
-    print('📏 MEDIDAS DEL PEDIDO: ${pedido.medidas}');
-  print('📏 CANTIDAD DE MEDIDAS: ${pedido.medidas?.length ?? 0}');
-final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
-  
-  final String entregaFormateada = pedido.fechaEntrega != null 
-      ? pedido.fechaEntrega!.toLocal().toString().substring(0, 10) 
-      : 'N/A';
+    final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
 
-  final String qrData = 
-      'tallercostura://pedido/${pedido.id}?cliente=$clienteEncoded&entrega=$entregaFormateada';
-      
+    final String entregaFormateada = pedido.fechaEntrega != null
+        ? pedido.fechaEntrega!.toLocal().toString().substring(0, 10)
+        : 'N/A';
+
+    final String qrData =
+        'tallercostura://pedido/${pedido.id}?cliente=$clienteEncoded&entrega=$entregaFormateada';
+
     return Scaffold(
       backgroundColor: const Color(0xffF8FAFC),
       appBar: AppBar(
@@ -584,7 +596,9 @@ final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isPaid ? Colors.green : const Color(0xff6D3EFF),
+                    backgroundColor: isPaid
+                        ? Colors.green
+                        : const Color(0xff6D3EFF),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -642,7 +656,9 @@ final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: _getEstadoColor(pedido.estado).withValues(alpha: 0.12),
+                      color: _getEstadoColor(
+                        pedido.estado,
+                      ).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -675,9 +691,7 @@ final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
                       const SizedBox(width: 6),
                       Text(
                         "Entrega: ${pedido.fechaEntrega?.toLocal().toString().substring(0, 10) ?? 'N/A'}",
-                        style: const TextStyle(
-                          color: Color(0xff64748B),
-                        ),
+                        style: const TextStyle(color: Color(0xff64748B)),
                       ),
                     ],
                   ),
@@ -694,9 +708,13 @@ final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
                 children: [
                   CircleAvatar(
                     radius: 30,
-                    backgroundColor: const Color(0xff6D3EFF).withValues(alpha: 0.1),
+                    backgroundColor: const Color(
+                      0xff6D3EFF,
+                    ).withValues(alpha: 0.1),
                     child: Text(
-                      pedido.clienteNombre.isNotEmpty ? pedido.clienteNombre[0].toUpperCase() : '?',
+                      pedido.clienteNombre.isNotEmpty
+                          ? pedido.clienteNombre[0].toUpperCase()
+                          : '?',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -719,15 +737,11 @@ final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
                         ),
                         Text(
                           pedido.clienteTelefono,
-                          style: const TextStyle(
-                            color: Color(0xff64748B),
-                          ),
+                          style: const TextStyle(color: Color(0xff64748B)),
                         ),
                         Text(
                           pedido.clienteEmail ?? '',
-                          style: const TextStyle(
-                            color: Color(0xff64748B),
-                          ),
+                          style: const TextStyle(color: Color(0xff64748B)),
                         ),
                       ],
                     ),
@@ -755,9 +769,7 @@ final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
                   const SizedBox(height: 4),
                   Text(
                     pedido.descripcion ?? 'Sin descripción',
-                    style: const TextStyle(
-                      color: Color(0xff64748B),
-                    ),
+                    style: const TextStyle(color: Color(0xff64748B)),
                   ),
                   const SizedBox(height: 8),
                   Container(
@@ -814,17 +826,11 @@ final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
                       padding: EdgeInsets.symmetric(vertical: 20),
                       child: Column(
                         children: [
-                          Icon(
-                            Icons.inbox,
-                            size: 40,
-                            color: Colors.grey,
-                          ),
+                          Icon(Icons.inbox, size: 40, color: Colors.grey),
                           SizedBox(height: 8),
                           Text(
                             "No hay actividad registrada",
-                            style: TextStyle(
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(color: Colors.grey),
                           ),
                         ],
                       ),
@@ -832,7 +838,9 @@ final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
                   : ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: pedido.prendas!.length > 3 ? 3 : pedido.prendas!.length,
+                      itemCount: pedido.prendas!.length > 3
+                          ? 3
+                          : pedido.prendas!.length,
                       itemBuilder: (context, index) {
                         final prenda = pedido.prendas![index];
                         return Container(
@@ -848,7 +856,9 @@ final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
                                 width: 32,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xff6D3EFF).withValues(alpha: 0.1),
+                                  color: const Color(
+                                    0xff6D3EFF,
+                                  ).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: const Icon(
@@ -910,98 +920,104 @@ final String clienteEncoded = Uri.encodeComponent(pedido.clienteNombre);
                 ),
               ),
 
-              /// QR CODE
-Screenshot(
-  controller: _screenshotController,
-  child: Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.04),
-          blurRadius: 15,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Column(
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xff6D3EFF).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+            /// QR CODE
+            Screenshot(
+              controller: _screenshotController,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 15,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xff6D3EFF,
+                            ).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.qr_code,
+                            color: Color(0xff6D3EFF),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Código QR',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xff102A43),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // ✅ AQUÍ REEMPLAZAMOS 'data' POR 'qrData'
+                    QrImageView(
+                      data: qrData,
+                      version: QrVersions.auto,
+                      size: 200,
+                      backgroundColor: Colors.white,
+                    ),
+
+                    const SizedBox(height: 8),
+                    Text(
+                      _pedidoActual.id,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xff102A43),
+                      ),
+                    ),
+                    Text(
+                      _pedidoActual.clienteNombre,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    Text(
+                      'Entrega: $entregaFormateada',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _compartirEtiqueta,
+                      icon: const Icon(Icons.share),
+                      label: const Text('Compartir / Imprimir etiqueta'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xff6D3EFF),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: const Icon(Icons.qr_code, color: Color(0xff6D3EFF), size: 20),
             ),
-            const SizedBox(width: 12),
-            const Text(
-              'Código QR',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xff102A43),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        
-        // ✅ AQUÍ REEMPLAZAMOS 'data' POR 'qrData'
-        QrImageView(
-          data: qrData,
-          version: QrVersions.auto,
-          size: 200,
-          backgroundColor: Colors.white,
-        ),
-        
-        const SizedBox(height: 8),
-        Text(
-          _pedidoActual.id,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Color(0xff102A43),
-          ),
-        ),
-        Text(
-          _pedidoActual.clienteNombre,
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey.shade600,
-          ),
-        ),
-        Text(
-          'Entrega: $entregaFormateada',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade500,
-          ),
-        ),
-        const SizedBox(height: 16),
-        ElevatedButton.icon(
-          onPressed: _compartirEtiqueta,
-          icon: const Icon(Icons.share),
-          label: const Text('Compartir / Imprimir etiqueta'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xff6D3EFF),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            minimumSize: const Size(double.infinity, 48),
-          ),
-        ),
-      ],
-    ),
-  ),
-),
-const SizedBox(height: 16),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -1025,8 +1041,6 @@ const SizedBox(height: 16),
     }
   }
 
-  
-
   Widget _medidaItem(String label, String value) {
     return Container(
       padding: const EdgeInsets.all(8),
@@ -1039,10 +1053,7 @@ const SizedBox(height: 16),
         children: [
           Text(
             label.toUpperCase(),
-            style: const TextStyle(
-              fontSize: 11,
-              color: Color(0xff829AB1),
-            ),
+            style: const TextStyle(fontSize: 11, color: Color(0xff829AB1)),
           ),
           const SizedBox(height: 2),
           Text(
