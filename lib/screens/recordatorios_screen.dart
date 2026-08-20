@@ -8,7 +8,8 @@ import 'detalle_pedido_screen.dart';
 
 class RecordatoriosScreen extends StatefulWidget {
   final List<Recordatorio> recordatorios;
-  final List<Pedido> pedidos;final Future<void> Function(String, String, DateTime) onAgregarRecordatorio;
+  final List<Pedido> pedidos;
+  final Future<void> Function(String, String, DateTime) onAgregarRecordatorio;
   final Function(String) onCompletarRecordatorio;
   final List<Estante> estantes;
   final Function(Map<String, dynamic>) onGuardarPedido;
@@ -29,6 +30,9 @@ class RecordatoriosScreen extends StatefulWidget {
 
 class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
   bool mostrarFormulario = false;
+  
+  // ✅ AGREGADO: ScrollController para hacer scroll hacia arriba
+  final ScrollController _scrollController = ScrollController();
 
   final TextEditingController tareaController = TextEditingController();
   final TextEditingController clienteController = TextEditingController();
@@ -122,45 +126,19 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
       return;
     }
 
-   await widget.onAgregarRecordatorio(
-    tareaController.text,
-    clienteController.text,
-    _fechaSeleccionada!,
-  );
-
-  tareaController.clear();
-  clienteController.clear();
-  horaController.clear();
-  fechaController.clear();
-  _fechaSeleccionada = null;
-
-  if (!mounted) return;
-
-  setState(() {
-    mostrarFormulario = false;
-  });
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('¡Recordatorio creado con éxito!'),
-      backgroundColor: Colors.green,
-    ),
-  );
-  final nuevoRecordatorio = Recordatorio(
-    id: DateTime.now().millisecondsSinceEpoch.toString(),
-    titulo: tareaController.text,
-    pedidoId: null,
-    clienteNombre: clienteController.text,
-    fechaRecordatorio: _fechaSeleccionada!,
-    completado: false,
-    fechaCreacion: DateTime.now(),
-  );
+    await widget.onAgregarRecordatorio(
+      tareaController.text,
+      clienteController.text,
+      _fechaSeleccionada!,
+    );
 
     tareaController.clear();
     clienteController.clear();
     horaController.clear();
     fechaController.clear();
     _fechaSeleccionada = null;
+
+    if (!mounted) return;
 
     setState(() {
       mostrarFormulario = false;
@@ -216,6 +194,15 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
     return const Color(0xff6D3EFF);
   }
 
+  // ✅ AGREGADO: Función para hacer scroll hacia arriba
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final todosItems = _obtenerTodosRecordatorios();
@@ -265,6 +252,10 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
               onPressed: () {
                 setState(() {
                   mostrarFormulario = !mostrarFormulario;
+                  // ✅ AGREGADO: Si se abre el formulario, hace scroll hacia arriba
+                  if (mostrarFormulario) {
+                    _scrollToTop();
+                  }
                   if (!mostrarFormulario) {
                     tareaController.clear();
                     clienteController.clear();
@@ -285,6 +276,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
         ],
       ),
       body: SingleChildScrollView(
+        controller: _scrollController, // ✅ AGREGADO: Controller para scroll
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
@@ -522,7 +514,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
         const SizedBox(height: 4),
         ...recordatorios.map(
           (r) {
-            final esPedido = r.titulo.contains('');
+            final esPedido = r.titulo.contains('📦');
 
             return InkWell(
               onTap: () {
