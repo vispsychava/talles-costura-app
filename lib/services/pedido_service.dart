@@ -160,7 +160,7 @@ class PedidoService {
     }
   }
 
-  ///  Actualizar estado de un pedido
+  /// Actualizar estado de un pedido
   Future<bool> actualizarEstadoPedido(String pedidoId, String nuevoEstado) async {
     try {
       await supabase
@@ -178,7 +178,26 @@ class PedidoService {
     }
   }
 
-  ///  Actualizar estado de pago
+  /// Actualizar prioridad de un pedido
+  Future<bool> actualizarPrioridadPedido(String pedidoId, String nuevaPrioridad) async {
+    try {
+      print('🔄 Actualizando prioridad en Supabase...');
+      await supabase
+          .from('pedidos')
+          .update({
+            'prioridad': nuevaPrioridad,
+            'fecha_actualizacion': DateTime.now().toIso8601String(),
+          })
+          .eq('codigo_pedido', pedidoId);
+      print('🔄 Prioridad actualizada correctamente');
+      return true;
+    } catch (e) {
+      print('❌ Error al actualizar prioridad: $e');
+      return false;
+    }
+  }
+
+  /// Actualizar estado de pago
   Future<bool> actualizarEstadoPago(String pedidoId, double nuevoSaldo) async {
     try {
       final estadoPago = nuevoSaldo == 0 ? 'Pagado' : 'Pendiente';
@@ -198,7 +217,7 @@ class PedidoService {
     }
   }
 
-  ///  Registrar un pago
+  /// Registrar un pago
   Future<bool> registrarPago(String pedidoId, double monto) async {
     try {
       // Obtener el pedido actual
@@ -247,7 +266,7 @@ class PedidoService {
           .select('''
             *,
             estantes(id_estante, codigo_estante, capacidad),
-            prendas(id_prenda, nombre, descripcion)
+            prendas(id_prenda, nombre, descripcion),
             medidas_pedido(id_medida_pedido, valor, tipo_medidas(nombre))
           ''')
           .eq('estado_pedido', estado)
@@ -265,6 +284,36 @@ class PedidoService {
       return pedidos;
     } catch (e) {
       print('Error al obtener pedidos por estado: $e');
+      return [];
+    }
+  }
+
+  /// Obtener pedidos por prioridad
+  Future<List<Pedido>> obtenerPedidosPorPrioridad(String prioridad) async {
+    try {
+      final response = await supabase
+          .from('pedidos')
+          .select('''
+            *,
+            estantes(id_estante, codigo_estante, capacidad),
+            prendas(id_prenda, nombre, descripcion),
+            medidas_pedido(id_medida_pedido, valor, tipo_medidas(nombre))
+          ''')
+          .eq('prioridad', prioridad)
+          .order('fecha_creacion', ascending: false);
+
+      List<Pedido> pedidos = [];
+      for (var json in response) {
+        try {
+          final pedido = _mapToPedido(json);
+          pedidos.add(pedido);
+        } catch (e) {
+          print('Error al mapear pedido: $e');
+        }
+      }
+      return pedidos;
+    } catch (e) {
+      print('Error al obtener pedidos por prioridad: $e');
       return [];
     }
   }
@@ -299,6 +348,72 @@ class PedidoService {
     }
   }
 
+  // ==================== 📝 HISTORIAL DE ACTIVIDAD ====================
+
+  /// 📝 Registrar actividad en el historial
+  Future<bool> registrarActividad({
+    required String pedidoId,
+    required String tipoAccion,
+    required String descripcion,
+    String? valorAnterior,
+    String? valorNuevo,
+  }) async {
+    try {
+      print('📝 ===== REGISTRANDO ACTIVIDAD =====');
+      print('📝 pedidoId: $pedidoId');
+      print('📝 tipoAccion: $tipoAccion');
+      print('📝 descripcion: $descripcion');
+      print('📝 valorAnterior: $valorAnterior');
+      print('📝 valorNuevo: $valorNuevo');
+
+      final data = {
+        'pedido_id': pedidoId,
+        'tipo_accion': tipoAccion,
+        'descripcion': descripcion,
+        'valor_anterior': valorAnterior,
+        'valor_nuevo': valorNuevo,
+        'fecha_creacion': DateTime.now().toIso8601String(),
+      };
+      print('📝 Data a insertar: $data');
+
+      final response = await supabase
+          .from('historial_actividad')
+          .insert(data);
+
+      print('📝 Respuesta de Supabase: $response');
+      print('✅ Actividad registrada correctamente');
+      return true;
+    } catch (e) {
+      print('❌ Error al registrar actividad: $e');
+      return false;
+    }
+  }
+
+  /// 📋 Obtener historial de actividad de un pedido
+  Future<List<Map<String, dynamic>>> obtenerHistorialPedido(String pedidoId) async {
+    try {
+      print('📋 ===== CONSULTANDO HISTORIAL =====');
+      print('📋 Pedido ID: $pedidoId');
+      
+      final response = await supabase
+          .from('historial_actividad')
+          .select('*')
+          .eq('pedido_id', pedidoId)
+          .order('fecha_creacion', ascending: false);
+
+      print('📋 Registros encontrados: ${response.length}');
+      if (response.isNotEmpty) {
+        print('📋 Primer registro: ${response.first}');
+      }
+      return response;
+    } catch (e) {
+      print('❌ Error al obtener historial: $e');
+      return [];
+    }
+  }
+
+  // ==================== FIN HISTORIAL ====================
+
   /// Mapear JSON a Pedido
   Pedido _mapToPedido(Map<String, dynamic> json) {
     // Obtener el código del estante
@@ -315,18 +430,19 @@ class PedidoService {
 
     // Procesar medidas si existen
     List<Medida> medidas = [];
-        if (json['medidas_pedido'] != null && json['medidas_pedido'] is List) {
-        medidas = (json['medidas_pedido'] as List).map((m) => Medida(
-          id: m['id_medida_pedido']?.toString() ?? '',
-          pedidoId: json['codigo_pedido'] ?? '',
-          clienteNombre: json['nombre_cliente'] ?? '',
-          tipoMedida: m['tipo_medidas']?['nombre'] ?? '', // 👈 aquí está el nombre
-          valor: (m['valor'] as num?)?.toDouble() ?? 0.0,
-          observaciones: '',
-          fechaCreacion: DateTime.now(),
-          fechaActualizacion: null,
-        )).toList();
-      }
+    if (json['medidas_pedido'] != null && json['medidas_pedido'] is List) {
+      medidas = (json['medidas_pedido'] as List).map((m) => Medida(
+        id: m['id_medida_pedido']?.toString() ?? '',
+        pedidoId: json['codigo_pedido'] ?? '',
+        clienteNombre: json['nombre_cliente'] ?? '',
+        tipoMedida: m['tipo_medidas']?['nombre'] ?? '',
+        valor: (m['valor'] as num?)?.toDouble() ?? 0.0,
+        observaciones: '',
+        fechaCreacion: DateTime.now(),
+        fechaActualizacion: null,
+      )).toList();
+    }
+
     // Parsear fecha de entrega
     DateTime? fechaEntrega;
     if (json['fecha_entrega'] != null && json['fecha_entrega'].isNotEmpty) {

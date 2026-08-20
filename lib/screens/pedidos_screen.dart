@@ -31,7 +31,7 @@ class PedidosScreen extends StatefulWidget {
 class _PedidosScreenState extends State<PedidosScreen> {
   final _supabaseService = SupabaseService();
   String searchQuery = '';
-  late String selectedStatusFilter;
+  late String selectedPriorityFilter;
   List<Pedido> _localPedidos = [];
   int _refreshCounter = 0;
   bool _isLoading = true;
@@ -40,7 +40,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
   @override
   void initState() {
     super.initState();
-    selectedStatusFilter = widget.filtroInicial ?? 'Todos';
+    selectedPriorityFilter = 'Todos';
     _cargarPedidosDesdeSupabase();
   }
 
@@ -92,11 +92,11 @@ class _PedidosScreenState extends State<PedidosScreen> {
           id.contains(query) ||
           titulo.contains(query);
 
-      if (selectedStatusFilter == 'Todos') {
+      if (selectedPriorityFilter == 'Todos') {
         return matchQuery;
       }
 
-      return matchQuery && pedido.estado == selectedStatusFilter;
+      return matchQuery && pedido.prioridad == selectedPriorityFilter;
     }).toList();
   }
 
@@ -104,31 +104,43 @@ class _PedidosScreenState extends State<PedidosScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
-  Color estadoColor(String estado) {
-    switch (estado) {
-      case 'En proceso':
-        return const Color(0xFF8B5CF6);
-      case 'Terminado':
-        return const Color(0xFF10B981);
-      case 'Entregado':
-        return const Color(0xFF3B82F6);
-      case 'Atrasado':
-        return const Color(0xFFEF4444);
+  /// 🎨 Colores para prioridad
+  Color prioridadColor(String prioridad) {
+    switch (prioridad) {
+      case 'Alta':
+        return const Color(0xFFEF4444); // Rojo
+      case 'Media':
+        return const Color(0xFFF59E0B); // Naranja
+      case 'Baja':
+        return const Color(0xFF10B981); // Verde
       default:
         return Colors.grey;
     }
   }
 
-  String estadoIcon(String estado) {
-    switch (estado) {
-      case 'En proceso':
-        return '⏳';
-      case 'Terminado':
+  /// 🎨 Iconos para prioridad
+  String prioridadIcon(String prioridad) {
+    switch (prioridad) {
+      case 'Alta':
+        return '🔴';
+      case 'Media':
+        return '🟠';
+      case 'Baja':
+        return '🟢';
+      default:
+        return '⚪';
+    }
+  }
+
+  /// 🎨 Emoji para prioridad
+  String prioridadEmoji(String prioridad) {
+    switch (prioridad) {
+      case 'Alta':
+        return '🚨';
+      case 'Media':
+        return '📌';
+      case 'Baja':
         return '✅';
-      case 'Entregado':
-        return '📦';
-      case 'Atrasado':
-        return '⚠️';
       default:
         return '📋';
     }
@@ -139,20 +151,16 @@ class _PedidosScreenState extends State<PedidosScreen> {
     final chips = [
       {'label': 'Todos', 'count': _localPedidos.length},
       {
-        'label': 'En proceso',
-        'count': _localPedidos.where((o) => o.estado == 'En proceso').length,
+        'label': 'Alta',
+        'count': _localPedidos.where((o) => o.prioridad == 'Alta').length,
       },
       {
-        'label': 'Terminado',
-        'count': _localPedidos.where((o) => o.estado == 'Terminado').length,
+        'label': 'Media',
+        'count': _localPedidos.where((o) => o.prioridad == 'Media').length,
       },
       {
-        'label': 'Atrasado',
-        'count': _localPedidos.where((o) => o.estado == 'Atrasado').length,
-      },
-      {
-        'label': 'Entregado',
-        'count': _localPedidos.where((o) => o.estado == 'Entregado').length,
+        'label': 'Baja',
+        'count': _localPedidos.where((o) => o.prioridad == 'Baja').length,
       },
     ];
 
@@ -280,23 +288,6 @@ class _PedidosScreenState extends State<PedidosScreen> {
                           borderRadius: BorderRadius.circular(16),
                           color: const Color(0xff6D3EFF),
                         ),
-                        /*child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              onPressed: () {
-                                showToast("¡Exportación CSV iniciada!");
-                              },
-                              icon: const Icon(Icons.download),
-                              label: const Text(
-                                "Exportar",
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                            ),*/
                         child: IconButton(
                           icon: const Icon(
                             Icons.qr_code_scanner,
@@ -332,7 +323,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
                           ),
                         ),
                         Text(
-                          "Administra las fichas técnicas y estados de entrega",
+                          "Administra las fichas técnicas y prioridades",
                           style: TextStyle(
                             color: Color(0xFF64748B),
                             fontSize: 15,
@@ -343,7 +334,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
                   ),
                   const SizedBox(height: 18),
 
-                  /// FILTROS
+                  /// FILTROS POR PRIORIDAD
                   if (_localPedidos.isNotEmpty)
                     SizedBox(
                       height: 45,
@@ -353,30 +344,49 @@ class _PedidosScreenState extends State<PedidosScreen> {
                         itemBuilder: (context, index) {
                           final chip = chips[index];
                           final isSelected =
-                              selectedStatusFilter == chip['label'];
+                              selectedPriorityFilter == chip['label'];
                           final count = chip['count'] as int;
+                          
+                          // Color del chip según prioridad
+                          Color chipColor;
+                          if (chip['label'] == 'Todos') {
+                            chipColor = const Color(0xFF6D3EFF);
+                          } else {
+                            chipColor = prioridadColor(chip['label'] as String);
+                          }
 
                           return Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: ChoiceChip(
                               selected: isSelected,
-                              label: Text(
-                                "${chip['label']} $count",
-                                style: TextStyle(
-                                  fontWeight: isSelected
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                  fontSize: 14,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : const Color(0xFF475569),
-                                ),
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (chip['label'] != 'Todos')
+                                    Text(
+                                      prioridadEmoji(chip['label'] as String),
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    "${chip['label']} $count",
+                                    style: TextStyle(
+                                      fontWeight: isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      fontSize: 14,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : const Color(0xFF475569),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              selectedColor: const Color(0xFF6D3EFF),
+                              selectedColor: chipColor,
                               backgroundColor: Colors.white,
                               side: BorderSide(
                                 color: isSelected
-                                    ? const Color(0xFF6D3EFF)
+                                    ? chipColor
                                     : Colors.grey.shade300,
                                 width: 1.5,
                               ),
@@ -385,7 +395,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
                               ),
                               onSelected: (_) {
                                 setState(() {
-                                  selectedStatusFilter =
+                                  selectedPriorityFilter =
                                       chip['label'] as String;
                                 });
                               },
@@ -399,7 +409,6 @@ class _PedidosScreenState extends State<PedidosScreen> {
                   Expanded(
                     child: GridView.builder(
                       key: ValueKey('$_refreshCounter-${_localPedidos.length}'),
-
                       itemCount: filteredPedidos.length + 1,
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossAxisCount,
@@ -485,7 +494,8 @@ class _PedidosScreenState extends State<PedidosScreen> {
                         final pedido = filteredPedidos[pedidoIndex];
                         final isAtrasado = pedido.estado == 'Atrasado';
                         final isPaid = (pedido.saldo ?? 0) == 0;
-                        final isEnProceso = pedido.estado == 'En proceso';
+                        final prioridad = pedido.prioridad ?? 'Media';
+                        final colorPrioridad = prioridadColor(prioridad);
 
                         /// TARJETA DE PEDIDO
                         return InkWell(
@@ -531,16 +541,14 @@ class _PedidosScreenState extends State<PedidosScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                /// HEADER
+                                /// HEADER - Ahora muestra PRIORIDAD
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: estadoColor(
-                                      pedido.estado,
-                                    ).withValues(alpha: 0.08),
+                                    color: colorPrioridad.withValues(alpha: 0.08),
                                     borderRadius: const BorderRadius.vertical(
                                       top: Radius.circular(16),
                                     ),
@@ -563,7 +571,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
                                           vertical: 3,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: estadoColor(pedido.estado),
+                                          color: colorPrioridad,
                                           borderRadius: BorderRadius.circular(
                                             10,
                                           ),
@@ -572,14 +580,14 @@ class _PedidosScreenState extends State<PedidosScreen> {
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Text(
-                                              estadoIcon(pedido.estado),
+                                              prioridadIcon(prioridad),
                                               style: const TextStyle(
                                                 fontSize: 10,
                                               ),
                                             ),
                                             const SizedBox(width: 3),
                                             Text(
-                                              pedido.estado.toUpperCase(),
+                                              prioridad.toUpperCase(),
                                               style: const TextStyle(
                                                 color: Colors.white,
                                                 fontWeight: FontWeight.w600,
@@ -642,11 +650,14 @@ class _PedidosScreenState extends State<PedidosScreen> {
                                                     color: Color(0xFF64748B),
                                                   ),
                                                   const SizedBox(width: 4),
-                                                  Text(
-                                                    pedido.clienteTelefono,
-                                                    style: const TextStyle(
-                                                      fontSize: 10,
-                                                      color: Color(0xFF64748B),
+                                                  Expanded(
+                                                    child: Text(
+                                                      pedido.clienteTelefono,
+                                                      style: const TextStyle(
+                                                        fontSize: 10,
+                                                        color: Color(0xFF64748B),
+                                                      ),
+                                                      overflow: TextOverflow.ellipsis,
                                                     ),
                                                   ),
                                                   const SizedBox(width: 6),
@@ -669,12 +680,15 @@ class _PedidosScreenState extends State<PedidosScreen> {
                                                     color: Color(0xFF64748B),
                                                   ),
                                                   const SizedBox(width: 4),
-                                                  Text(
-                                                    pedido.estanteId ??
-                                                        'Sin asignar',
-                                                    style: const TextStyle(
-                                                      fontSize: 10,
-                                                      color: Color(0xFF64748B),
+                                                  Expanded(
+                                                    child: Text(
+                                                      pedido.estanteId ??
+                                                          'Sin asignar',
+                                                      style: const TextStyle(
+                                                        fontSize: 10,
+                                                        color: Color(0xFF64748B),
+                                                      ),
+                                                      overflow: TextOverflow.ellipsis,
                                                     ),
                                                   ),
                                                 ],
@@ -822,11 +836,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
                                             }
                                           },
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: isEnProceso
-                                                ? const Color(0xFF8B5CF6)
-                                                : pedido.estado == 'Atrasado'
-                                                ? Colors.red
-                                                : const Color(0xFF10B981),
+                                            backgroundColor: colorPrioridad,
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
                                                   BorderRadius.circular(8),
@@ -840,8 +850,8 @@ class _PedidosScreenState extends State<PedidosScreen> {
                                             pedido.estado == 'Terminado'
                                                 ? 'Notificar'
                                                 : isAtrasado
-                                                ? 'Prioridad'
-                                                : 'Actualizar',
+                                                ? '⚠️ Vencido'
+                                                : '📋 Ver',
                                             style: const TextStyle(
                                               fontSize: 10,
                                               fontWeight: FontWeight.w600,

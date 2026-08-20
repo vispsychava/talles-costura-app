@@ -10,9 +10,8 @@ import 'configuracion_screen.dart';
 import 'recordatorios_screen.dart';
 import 'detalle_pedido_screen.dart';
 import '../models/medida.dart';
-import '../services/supabase_service.dart'; // ✅ Agregar import
+import '../services/supabase_service.dart';
 import '../services/recordatorio_service.dart';
-
 
 class PanelPrincipalScreen extends StatefulWidget {
   final List<Pedido> pedidos;
@@ -50,7 +49,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
     _recordatorios = List.from(widget.recordatorios);
     _actualizarEstantesDesdePedidos();
     _searchController.addListener(_onSearchChanged);
-      _cargarDatosYActualizar();
+    _cargarDatosYActualizar();
   }
 
   @override
@@ -142,7 +141,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
     );
   }
 
-void _selectSuggestion(Pedido pedido) {
+  void _selectSuggestion(Pedido pedido) {
     setState(() {
       _showSuggestions = false;
       _searchController.text = '';
@@ -164,7 +163,7 @@ void _selectSuggestion(Pedido pedido) {
 
   List<MapEntry<String, dynamic>> get proximosEventos {
     List<MapEntry<String, dynamic>> eventos = [];
-    
+
     for (var recordatorio in widget.recordatorios) {
       if (!recordatorio.completado) {
         eventos.add(MapEntry('recordatorio', recordatorio));
@@ -233,7 +232,6 @@ void _selectSuggestion(Pedido pedido) {
     }
   }
 
-  /// ✅ Cargar datos frescos desde Supabase
   Future<void> _cargarDatosYActualizar() async {
     try {
       final supabaseService = SupabaseService();
@@ -243,7 +241,7 @@ void _selectSuggestion(Pedido pedido) {
         if (pedidosSupabase.isNotEmpty) {
           _pedidos = pedidosSupabase;
         }
-        _recordatorios = recordatoriosSupabase; // 👈 ya no depende de si hay pedidos
+        _recordatorios = recordatoriosSupabase;
         _actualizarEstantesDesdePedidos();
       });
     } catch (e) {
@@ -251,7 +249,7 @@ void _selectSuggestion(Pedido pedido) {
     }
   }
 
-      Future<void> _agregarRecordatorio(String titulo, String cliente, DateTime fecha) async {
+  Future<void> _agregarRecordatorio(String titulo, String cliente, DateTime fecha) async {
     final nuevo = Recordatorio(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       pedidoId: null,
@@ -267,7 +265,7 @@ void _selectSuggestion(Pedido pedido) {
 
     if (exito) {
       await _cargarDatosYActualizar();
-     NotificationService().scheduleReminderNotification(nuevo); 
+      NotificationService().scheduleReminderNotification(nuevo);
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -287,8 +285,6 @@ void _selectSuggestion(Pedido pedido) {
       NotificationService().cancelNotification(id);
     }
   }
-
-
 
   void _guardarPedido(Map<String, dynamic> pedidoData) {
     setState(() {
@@ -311,8 +307,7 @@ void _selectSuggestion(Pedido pedido) {
 
       final String id = pedidoData['id']?.toString() ?? '';
       final String clienteNombre = pedidoData['clientName']?.toString() ?? '';
-      final String clienteTelefono =
-          pedidoData['clientPhone']?.toString() ?? '';
+      final String clienteTelefono = pedidoData['clientPhone']?.toString() ?? '';
       final String clienteEmail = pedidoData['clientEmail']?.toString() ?? '';
       final String estado = pedidoData['status']?.toString() ?? 'Sin empezar';
       final String descripcion = pedidoData['description']?.toString() ?? '';
@@ -326,8 +321,7 @@ void _selectSuggestion(Pedido pedido) {
       final String titulo = pedidoData['title']?.toString() ?? 'Pedido';
       final String? estanteId = pedidoData['shelfAssignment']?.toString();
       final String prioridad = pedidoData['priority']?.toString() ?? 'Media';
-      final String tipoPrenda =
-          pedidoData['garmentType']?.toString() ?? 'vestido';
+      final String tipoPrenda = pedidoData['garmentType']?.toString() ?? 'vestido';
       final String talla = pedidoData['size']?.toString() ?? 'M';
       final double anticipo = (pedidoData['advancePaid'] ?? 0.0).toDouble();
       final double saldo = (pedidoData['balanceDue'] ?? 0.0).toDouble();
@@ -429,37 +423,77 @@ void _selectSuggestion(Pedido pedido) {
     );
   }
 
-void _navigateToRecordatorios() {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => RecordatoriosScreen(
-        recordatorios: _recordatorios,              // 👈 antes decía widget.recordatorios
-        pedidos: _pedidos,
-        onAgregarRecordatorio: _agregarRecordatorio, // 👈 antes era (titulo, cliente) {}
-        onCompletarRecordatorio: _completarRecordatorio, // 👈 antes era (id) {}
-        estantes: _estantes,
-        onGuardarPedido: _guardarPedido,
+  void _navigateToOrdersWithPriority(String prioridad) {
+    final pedidosFiltrados = _pedidos.where((pedido) =>
+      pedido.prioridad == prioridad
+    ).toList();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PedidosScreen(
+          pedidos: pedidosFiltrados,
+          onNavigate: (pantalla, [pedidoId]) {
+            if (pantalla == 'status_management' && pedidoId != null) {
+              final pedido = _pedidos.firstWhere(
+                (p) => p.id == pedidoId,
+                orElse: () => _pedidos.first,
+              );
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DetallePedidoScreen(
+                    pedido: pedido,
+                    onPedidoActualizado: (pedidoActualizado) {
+                      _guardarPedido(pedidoActualizado.toJson());
+                    },
+                  ),
+                ),
+              );
+            }
+          },
+          filtroInicial: 'Todos',
+          estantes: _estantes,
+          onGuardarPedido: _guardarPedido,
+          onRefresh: () {
+            setState(() {
+              _pedidos = List.from(_pedidos);
+              _actualizarEstantesDesdePedidos();
+            });
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
+  int _contarPorPrioridad(String prioridad) {
+    return _pedidos.where((pedido) =>
+      pedido.prioridad == prioridad &&
+      pedido.estado != 'Entregado'
+    ).length;
+  }
+
+  void _navigateToRecordatorios() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RecordatoriosScreen(
+          recordatorios: _recordatorios,
+          pedidos: _pedidos,
+          onAgregarRecordatorio: _agregarRecordatorio,
+          onCompletarRecordatorio: _completarRecordatorio,
+          estantes: _estantes,
+          onGuardarPedido: _guardarPedido,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final pendientesCount = _pedidos
-        .where((o) => o.estado == 'Sin empezar')
-        .length;
-
-    final procesoCount = _pedidos.where((o) => o.estado == 'En proceso').length;
-
-    final terminadosCount = _pedidos
-        .where((o) => o.estado == 'Terminado')
-        .length;
-
-    final entregadosCount = _pedidos
-        .where((o) => o.estado == 'Entregado')
-        .length;
+    final altaCount = _contarPorPrioridad('Alta');
+    final mediaCount = _contarPorPrioridad('Media');
+    final bajaCount = _contarPorPrioridad('Baja');
 
     final eventos = proximosEventos;
 
@@ -480,7 +514,7 @@ void _navigateToRecordatorios() {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        "Buenos días, Doña Tere",
+                        "Buenos días, Tere",
                         style: TextStyle(
                           fontSize: 34,
                           fontWeight: FontWeight.w800,
@@ -714,44 +748,37 @@ void _navigateToRecordatorios() {
 
               const SizedBox(height: 24),
 
-              /// MÉTRICAS
+              /// MÉTRICAS DE PRIORIDAD
               Wrap(
                 spacing: 16,
                 runSpacing: 16,
                 children: [
                   _metricCard(
-                    "Pendientes",
-                    pendientesCount.toString(),
-                    Icons.access_time,
-                    const Color(0xff6366F1),
-                    () => _navigateToOrdersWithFilter('Sin empezar'),
+                    "Prioridad Alta",
+                    altaCount.toString(),
+                    Icons.priority_high,
+                    const Color(0xffEF4444),
+                    () => _navigateToOrdersWithPriority('Alta'),
                   ),
                   _metricCard(
-                    "En Proceso",
-                    procesoCount.toString(),
-                    Icons.trending_up,
+                    "Prioridad Media",
+                    mediaCount.toString(),
+                    Icons.remove,
                     const Color(0xffF59E0B),
-                    () => _navigateToOrdersWithFilter('En proceso'),
+                    () => _navigateToOrdersWithPriority('Media'),
                   ),
                   _metricCard(
-                    "Terminados",
-                    terminadosCount.toString(),
-                    Icons.check_circle,
+                    "Prioridad Baja",
+                    bajaCount.toString(),
+                    Icons.arrow_downward,
                     const Color(0xff10B981),
-                    () => _navigateToOrdersWithFilter('Terminado'),
-                  ),
-                  _metricCard(
-                    "Entregados",
-                    entregadosCount.toString(),
-                    Icons.local_shipping,
-                    const Color(0xff3B82F6),
-                    () => _navigateToOrdersWithFilter('Entregado'),
+                    () => _navigateToOrdersWithPriority('Baja'),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
 
-              /// PANEL DE CONTROL - AHORA CON 4 BOTONES
+              /// PANEL DE CONTROL
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -787,7 +814,7 @@ void _navigateToRecordatorios() {
                         mainAxisSpacing: 12,
                         childAspectRatio: 1.4,
                         children: [
-                          /// 1. Nuevo Pedido
+                          /// 1. Nuevo Pedido - ✅ CORREGIDO
                           _actionButton(
                             "Nuevo Pedido",
                             Icons.add,
@@ -856,13 +883,12 @@ void _navigateToRecordatorios() {
                             false,
                           ),
 
-                          /// 3. Estantes Taller - ✅ CORREGIDO
+                          /// 3. Estantes Taller
                           _actionButton(
                             "Estantes Taller",
                             Icons.grid_view,
                             const Color(0xff6D3EFF),
                             () {
-                              // ✅ Cargar datos frescos antes de abrir
                               _cargarDatosYActualizar().then((_) {
                                 Navigator.push(
                                   context,

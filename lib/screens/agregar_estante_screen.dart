@@ -90,7 +90,7 @@ class _AgregarEstanteScreenState extends State<AgregarEstanteScreen> {
                     TextFormField(
                       controller: _codigoController,
                       decoration: InputDecoration(
-                        labelText: "Código del Estante",
+                        labelText: "Código del Estante *",
                         hintText: "Ej: A1, B2, C3",
                         labelStyle: TextStyle(
                           color: Colors.grey.shade600,
@@ -130,15 +130,12 @@ class _AgregarEstanteScreenState extends State<AgregarEstanteScreen> {
                         if (value == null || value.isEmpty) {
                           return "El código es obligatorio";
                         }
-                        // ✅ Solo letras, números y guiones
                         if (!RegExp(r'^[a-zA-Z0-9\-]+$').hasMatch(value)) {
                           return "Solo letras, números y guiones";
                         }
-                        // ✅ Mínimo 2 caracteres
                         if (value.length < 2) {
                           return "El código debe tener al menos 2 caracteres";
                         }
-                        // ✅ Máximo 10 caracteres
                         if (value.length > 10) {
                           return "El código no puede tener más de 10 caracteres";
                         }
@@ -147,12 +144,12 @@ class _AgregarEstanteScreenState extends State<AgregarEstanteScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    /// Descripción del Estante
+                    /// Descripción del Estante (OPCIONAL)
                     TextFormField(
                       controller: _descripcionController,
                       maxLines: 3,
                       decoration: InputDecoration(
-                        labelText: "Descripción",
+                        labelText: "Descripción (Opcional)",
                         hintText: "Ej: Estante Principal, Estante Norte",
                         labelStyle: TextStyle(
                           color: Colors.grey.shade600,
@@ -188,24 +185,20 @@ class _AgregarEstanteScreenState extends State<AgregarEstanteScreen> {
                         fontSize: 16,
                         color: Color(0xff102A43),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "La descripción es obligatoria";
-                        }
-                        // ✅ Mínimo 3 caracteres
-                        if (value.length < 3) {
-                          return "La descripción debe tener al menos 3 caracteres";
-                        }
-                        // ✅ Máximo 100 caracteres
-                        if (value.length > 100) {
-                          return "La descripción no puede tener más de 100 caracteres";
-                        }
-                        // ✅ Solo letras, números, espacios y caracteres básicos
-                        if (!RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\-.,]+$').hasMatch(value)) {
-                          return "Solo letras, números y espacios";
-                        }
-                        return null;
-                      },
+                      // ✅ Ya no hay validator, es opcional
+                    ),
+                    const SizedBox(height: 8),
+                    // ✅ Mensaje informativo de que es opcional
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "La descripción es opcional, puedes dejarla vacía",
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -282,19 +275,22 @@ class _AgregarEstanteScreenState extends State<AgregarEstanteScreen> {
                         print('Intentando guardar estante: codigo=$codigo, descripcion=$descripcion');
 
                         try {
+                          // ✅ Si la descripción está vacía, usar el código como nombre
+                          final nombreFinal = descripcion.isEmpty ? codigo : descripcion;
+
                           // Guardar en Supabase
                           final response = await Supabase.instance.client.from('estantes').insert({
                             'codigo': codigo,
-                            'descripcion': descripcion,
+                            'descripcion': descripcion.isEmpty ? null : descripcion, // ✅ Guardar null si está vacío
                           }).select();
 
                           print('Estante guardado en Supabase: $response');
 
                           final nuevoEstante = Estante(
                             id: codigo,
-                            nombre: descripcion,
+                            nombre: nombreFinal, // ✅ Usar código si no hay descripción
                             ubicacion: null,
-                            descripcion: descripcion,
+                            descripcion: descripcion.isEmpty ? 'Estante $codigo' : descripcion,
                             capacidad: 10,
                             ocupados: 0,
                             fechaCreacion: DateTime.now(),
@@ -307,7 +303,7 @@ class _AgregarEstanteScreenState extends State<AgregarEstanteScreen> {
 
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text(' Estante creado correctamente'),
+                              content: Text('✅ Estante creado correctamente'),
                               backgroundColor: Colors.green,
                             ),
                           );
@@ -316,7 +312,7 @@ class _AgregarEstanteScreenState extends State<AgregarEstanteScreen> {
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(' Error: ${e.toString().replaceFirst('Exception: ', '')}'),
+                              content: Text('❌ Error: ${e.toString().replaceFirst('Exception: ', '')}'),
                               backgroundColor: Colors.red,
                             ),
                           );

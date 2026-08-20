@@ -41,7 +41,7 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
 
   // ✅ Medidas dinámicas
   List<Map<String, dynamic>> _medidasDinamicas = []; 
-Map<int, TextEditingController> _medidaControllers = {};
+  Map<int, TextEditingController> _medidaControllers = {};
   bool _cargandoMedidas = false;
 
   List<Estante> get _estantesDisponibles {
@@ -74,27 +74,27 @@ Map<int, TextEditingController> _medidaControllers = {};
     super.dispose();
   }
 
-Future<void> _cargarMedidasPorPrenda(String tipo) async {
-  setState(() => _cargandoMedidas = true);
+  Future<void> _cargarMedidasPorPrenda(String tipo) async {
+    setState(() => _cargandoMedidas = true);
 
-  final idPrenda = SupabaseService.idPrendaPorTipo[tipo] ?? 3;
-  final medidas = await _pedidoService.obtenerMedidasPorTipoPrenda(idPrenda);
+    final idPrenda = SupabaseService.idPrendaPorTipo[tipo] ?? 3;
+    final medidas = await _pedidoService.obtenerMedidasPorTipoPrenda(idPrenda);
 
-  for (var c in _medidaControllers.values) {
-    c.dispose();
+    for (var c in _medidaControllers.values) {
+      c.dispose();
+    }
+
+    final newControllers = <int, TextEditingController>{};
+    for (var medida in medidas) {
+      newControllers[medida['id_tipo_medida'] as int] = TextEditingController();
+    }
+
+    setState(() {
+      _medidasDinamicas = medidas;
+      _medidaControllers = newControllers;
+      _cargandoMedidas = false;
+    });
   }
-
-  final newControllers = <int, TextEditingController>{};
-  for (var medida in medidas) {
-    newControllers[medida['id_tipo_medida'] as int] = TextEditingController();
-  }
-
-  setState(() {
-    _medidasDinamicas = medidas;
-    _medidaControllers = newControllers;
-    _cargandoMedidas = false;
-  });
-}
 
   void calcularSaldo() {
     setState(() {
@@ -404,6 +404,151 @@ Future<void> _cargarMedidasPorPrenda(String tipo) async {
           ),
         ),
         centerTitle: false,
+        // ✅ Botones en la AppBar (derecha)
+        actions: [
+          // Botón Cancelar
+          TextButton(
+            onPressed: _isLoading ? null : () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey.shade700,
+            ),
+            child: const Text(
+              "Cancelar",
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          // Botón Guardar
+          ElevatedButton(
+            onPressed: _isLoading
+                ? null
+                : () async {
+                    if (!_formKey.currentState!.validate()) return;
+
+                    if (estanteAsignado == null ||
+                        estanteAsignado!.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Selecciona un estante"),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                      return;
+                    }
+
+                    final fechaEntregaStr =
+                        '${fechaEntrega.year}-'
+                        '${fechaEntrega.month.toString().padLeft(2, '0')}-'
+                        '${fechaEntrega.day.toString().padLeft(2, '0')}';
+
+                    final timestamp =
+                        DateTime.now().millisecondsSinceEpoch;
+                    final id =
+                        'ORD-${timestamp.toString().substring(7)}';
+
+                    final nuevoPedido = {
+                      'id': id,
+                      'clientName':
+                          clienteNombreController.text.trim(),
+                      'clientPhone': telefonoController.text.trim(),
+                      'clientEmail': emailController.text.trim(),
+                      'shelfAssignment': estanteAsignado!,
+                      'priority': prioridad,
+                      'garmentType': tipoPrenda,
+                      'title':
+                          '${tipoPrenda.toUpperCase()} - ${clienteNombreController.text.trim()}',
+                      'size': tallaController.text.trim(),
+                      'description':
+                          descripcionController.text.trim(),
+                      'deliveryDate': fechaEntregaStr,
+                      'expectedDeliveryDate': fechaEntregaStr,
+                      'totalAmount': total,
+                      'advancePaid': anticipo,
+                      'balanceDue': saldo,
+                      'status': 'Sin empezar',
+                      'statusDate':
+                          DateTime.now().toIso8601String(),
+                    };
+
+                    setState(() => _isLoading = true);
+                    final idPedido = await _pedidoService
+                        .insertarPedido(nuevoPedido);
+
+                    if (idPedido != null) {
+                      // ✅ Armar y guardar las medidas capturadas
+                      final medidasParaGuardar = <Map<String, dynamic>>[];
+                      for (var entry in _medidaControllers.entries) {
+                        final valor = double.tryParse(entry.value.text.trim());
+                        if (valor != null && valor > 0) {
+                          medidasParaGuardar.add({
+                            'idTipoMedida': entry.key,
+                            'valor': valor,
+                          });
+                        }
+                      }
+                      await _pedidoService.insertarMedidasPedido(idPedido, medidasParaGuardar);
+                    }
+                    setState(() => _isLoading = false);
+
+                    if (!context.mounted) return;
+
+                    if (idPedido != null) {
+                      await NotificationService()
+                          .scheduleNotificacionPedido(
+                        pedidoId: id,
+                        titulo:
+                            '${tipoPrenda.toUpperCase()} - ${clienteNombreController.text.trim()}',
+                        fechaEntrega: fechaEntrega,
+                      );
+                      widget.onGuardarPedido(nuevoPedido);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content:
+                              Text("Pedido guardado correctamente"),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                      Navigator.pop(context);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              "Error al guardar. Revisa tu conexión"),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xff6D3EFF),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    "Guardar",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 12),
+        ],
       ),
       body: Form(
         key: _formKey,
@@ -968,155 +1113,7 @@ Future<void> _cargarMedidasPorPrenda(String tipo) async {
                 ),
               ),
 
-              const SizedBox(height: 30),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.grey.shade300),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text(
-                        "Cancelar",
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xff64748B)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xff6D3EFF),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      onPressed: _isLoading
-                          ? null
-                          : () async {
-                              if (!_formKey.currentState!.validate()) return;
-
-                              if (estanteAsignado == null ||
-                                  estanteAsignado!.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Selecciona un estante"),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              final fechaEntregaStr =
-                                  '${fechaEntrega.year}-'
-                                  '${fechaEntrega.month.toString().padLeft(2, '0')}-'
-                                  '${fechaEntrega.day.toString().padLeft(2, '0')}';
-
-                              final timestamp =
-                                  DateTime.now().millisecondsSinceEpoch;
-                              final id =
-                                  'ORD-${timestamp.toString().substring(7)}';
-
-                              final nuevoPedido = {
-                                'id': id,
-                                'clientName':
-                                    clienteNombreController.text.trim(),
-                                'clientPhone': telefonoController.text.trim(),
-                                'clientEmail': emailController.text.trim(),
-                                'shelfAssignment': estanteAsignado!,
-                                'priority': prioridad,
-                                'garmentType': tipoPrenda,
-                                'title':
-                                    '${tipoPrenda.toUpperCase()} - ${clienteNombreController.text.trim()}',
-                                'size': tallaController.text.trim(),
-                                'description':
-                                    descripcionController.text.trim(),
-                                'deliveryDate': fechaEntregaStr,
-                                'expectedDeliveryDate': fechaEntregaStr,
-                                'totalAmount': total,
-                                'advancePaid': anticipo,
-                                'balanceDue': saldo,
-                                'status': 'Sin empezar',
-                                'statusDate':
-                                    DateTime.now().toIso8601String(),
-                              };
-
-                              setState(() => _isLoading = true);
-                              final idPedido = await _pedidoService
-                                  .insertarPedido(nuevoPedido);
-
-                                  if (idPedido != null) {
-                                // ✅ Armar y guardar las medidas capturadas
-                                final medidasParaGuardar = <Map<String, dynamic>>[];
-                                for (var entry in _medidaControllers.entries) {
-                                  final valor = double.tryParse(entry.value.text.trim());
-                                  if (valor != null && valor > 0) {
-                                    medidasParaGuardar.add({
-                                      'idTipoMedida': entry.key,
-                                      'valor': valor,
-                                    });
-                                  }
-                                }
-                                await _pedidoService.insertarMedidasPedido(idPedido, medidasParaGuardar);
-                              }
-                              setState(() => _isLoading = false);
-
-                              if (!context.mounted) return;
-
-                              if (idPedido != null) {
-                                await NotificationService()
-                                    .scheduleNotificacionPedido(
-                                  pedidoId: id,
-                                  titulo:
-                                      '${tipoPrenda.toUpperCase()} - ${clienteNombreController.text.trim()}',
-                                  fechaEntrega: fechaEntrega,
-                                );
-                                widget.onGuardarPedido(nuevoPedido);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content:
-                                        Text("Pedido guardado correctamente"),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                                Navigator.pop(context);
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                        "Error al guardar. Revisa tu conexión"),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            },
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
-                            )
-                          : const Text(
-                              "Guardar Pedido",
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                    ),
-                  ),
-                ],
-              ),
+              // ✅ Espacio extra al final para que el contenido no quede pegado
               const SizedBox(height: 30),
             ],
           ),

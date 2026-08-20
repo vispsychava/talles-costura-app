@@ -346,29 +346,45 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            /// HEADER
+            /// HEADER CON BOTÓN DE REGRESO
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
+              padding: const EdgeInsets.fromLTRB(16, 16, 24, 16),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 border: Border(bottom: BorderSide(color: Color(0xffE5E7EB))),
               ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(
-                    "Organizador de Estantes",
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xff0F172A),
+                  // ✅ Botón de regreso a Panel Principal
+                  IconButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(
+                      Icons.arrow_back_ios,
+                      color: Color(0xff6D3EFF),
+                      size: 22,
                     ),
+                    tooltip: 'Regresar al Panel Principal',
                   ),
-                  SizedBox(height: 6),
-                  Text(
-                    "Control de almacenamiento de prendas del taller",
-                    style: TextStyle(fontSize: 16, color: Color(0xff94A3B8)),
+                  const SizedBox(width: 8),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Organizador de Estantes",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff0F172A),
+                        ),
+                      ),
+                      Text(
+                        "Control de almacenamiento de prendas del taller",
+                        style: TextStyle(fontSize: 14, color: Color(0xff94A3B8)),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -460,7 +476,7 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
                                 onTap: () => abrirEstante(estante),
                                 borderRadius: BorderRadius.circular(18),
                                 child: Container(
-                                  padding: const EdgeInsets.all(20),
+                                  padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(28),
@@ -485,11 +501,12 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
+                                          // ✅ Nombre del estante más pequeño
                                           Expanded(
                                             child: Text(
                                               estante.nombre,
                                               style: const TextStyle(
-                                                fontSize: 42,
+                                                fontSize: 28, // 👈 Reducido de 42 a 28
                                                 fontWeight: FontWeight.bold,
                                                 color: Color(0xff0F172A),
                                               ),
@@ -497,11 +514,12 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
-                                          const SizedBox(width: 8),
+                                          const SizedBox(width: 4),
+                                          // ✅ Badge de estado más pequeño
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 6,
+                                              horizontal: 10,
+                                              vertical: 4,
                                             ),
                                             decoration: BoxDecoration(
                                               color: estadoColor(
@@ -515,21 +533,21 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
                                               style: TextStyle(
                                                 color: estadoColor(estado),
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 11,
+                                                fontSize: 10, // 👈 Reducido de 11 a 10
                                               ),
                                             ),
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 25),
+                                      const SizedBox(height: 20),
                                       Text(
                                         "Capacidad",
                                         style: TextStyle(
                                           color: Colors.grey.shade500,
-                                          fontSize: 16,
+                                          fontSize: 14, // 👈 Reducido de 16 a 14
                                         ),
                                       ),
-                                      const SizedBox(height: 8),
+                                      const SizedBox(height: 6),
                                       Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
@@ -538,14 +556,14 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
                                           Text(
                                             "${estante.ocupados}/${estante.capacidad} prendas",
                                             style: const TextStyle(
-                                              fontSize: 20,
+                                              fontSize: 18, // 👈 Reducido de 20 a 18
                                               fontWeight: FontWeight.bold,
                                               color: Color(0xff102A43),
                                             ),
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 12),
+                                      const SizedBox(height: 10),
                                     ],
                                   ),
                                 ),

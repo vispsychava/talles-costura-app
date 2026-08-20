@@ -23,22 +23,45 @@ class DetallePedidoScreen extends StatefulWidget {
 
 class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
   late double montoPago;
-  late String estadoSeleccionado;
+  late String prioridadSeleccionada;
   late Pedido _pedidoActual;
   final _pedidoService = PedidoService();
   final _screenshotController = ScreenshotController();
+  List<Map<String, dynamic>> _historial = [];
+  bool _cargandoHistorial = false;
 
   @override
   void initState() {
     super.initState();
     _pedidoActual = widget.pedido;
     montoPago = _pedidoActual.saldo ?? 0;
-    estadoSeleccionado = _pedidoActual.estado;
+    prioridadSeleccionada = _pedidoActual.prioridad ?? 'Media';
+    _cargarHistorial();
+  }
+
+  /// 📋 Cargar historial de actividad
+  Future<void> _cargarHistorial() async {
+    print('📋 ===== CARGANDO HISTORIAL =====');
+    print('📋 Pedido ID: ${_pedidoActual.id}');
+    setState(() => _cargandoHistorial = true);
+    
+    final historial = await _pedidoService.obtenerHistorialPedido(_pedidoActual.id);
+    print('📋 Historial obtenido: ${historial.length} registros');
+    
+    if (historial.isNotEmpty) {
+      print('📋 Primer registro: ${historial.first}');
+    }
+    
+    setState(() {
+      _historial = historial;
+      _cargandoHistorial = false;
+    });
+    print('📋 ===== FIN CARGAR HISTORIAL =====');
   }
 
   void _mostrarModalPago() {
-    final pagoController = TextEditingController(); // ✅ controller
-    montoPago = 0; // ✅ resetear a 0
+    final pagoController = TextEditingController();
+    montoPago = 0;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -80,7 +103,7 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
               ),
               const SizedBox(height: 20),
               TextField(
-                controller: pagoController, // ✅ controller
+                controller: pagoController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Monto a pagar',
@@ -93,7 +116,7 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
                   fillColor: Colors.grey.shade50,
                 ),
                 onChanged: (value) {
-                  montoPago = double.tryParse(value) ?? 0; // ✅ default 0
+                  montoPago = double.tryParse(value) ?? 0;
                 },
               ),
               const SizedBox(height: 12),
@@ -182,7 +205,11 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
   }
 
   void _registrarPago(double monto) async {
-    print('Registrando pago para pedido ID: ${_pedidoActual.id}');
+    print('💰 ===== INICIANDO REGISTRO DE PAGO =====');
+    print('💰 Pedido ID: ${_pedidoActual.id}');
+    print('💰 Monto: $monto');
+    print('💰 Saldo actual: ${_pedidoActual.saldo}');
+    
     if (monto <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -205,21 +232,40 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
     }
 
     final nuevoSaldo = (saldoActual - monto).clamp(0.0, double.infinity);
+    print('💰 Nuevo saldo calculado: $nuevoSaldo');
 
+    // Actualizar pago
+    print('💰 Actualizando pago en Supabase...');
     final exito = await _pedidoService.actualizarEstadoPago(
       _pedidoActual.id,
       nuevoSaldo,
     );
+    print('💰 Resultado actualización pago: $exito');
 
     if (!context.mounted) return;
 
     if (exito) {
+      print('📝 Registrando actividad de pago...');
+      final registroExito = await _pedidoService.registrarActividad(
+        pedidoId: _pedidoActual.id,
+        tipoAccion: 'pago',
+        descripcion: 'Pago registrado de \$${monto.toStringAsFixed(2)}',
+        valorAnterior: '\$${saldoActual.toStringAsFixed(2)}',
+        valorNuevo: '\$${nuevoSaldo.toStringAsFixed(2)}',
+      );
+      print('📝 Resultado registro actividad: $registroExito');
+
       final pedidoActualizado = _pedidoActual.copyWith(
         saldo: nuevoSaldo,
         fechaActualizacion: DateTime.now(),
       );
-      setState(() => _pedidoActual = pedidoActualizado);
+      setState(() {
+        _pedidoActual = pedidoActualizado;
+      });
       widget.onPedidoActualizado(pedidoActualizado);
+      await _cargarHistorial();
+      print('✅ Historial recargado, cantidad: ${_historial.length}');
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Pago registrado: \$${monto.toStringAsFixed(2)}'),
@@ -234,15 +280,15 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
         ),
       );
     }
+    print('💰 ===== FIN REGISTRO DE PAGO =====');
   }
 
-  void _mostrarModalEstado() {
-    final estados = [
-      'Sin empezar',
-      'En proceso',
-      'Terminado',
-      'Entregado',
-      'Atrasado',
+  /// Modal para cambiar PRIORIDAD
+  void _mostrarModalPrioridad() {
+    final prioridades = [
+      'Alta',
+      'Media',
+      'Baja',
     ];
 
     showModalBottomSheet(
@@ -267,209 +313,60 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Actualizar Estado',
+                'Cambiar Prioridad',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                   color: Color(0xff102A43),
                 ),
               ),
+              const SizedBox(height: 8),
+              Text(
+                'Cliente: ${_pedidoActual.clienteNombre}',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
               const SizedBox(height: 16),
-              ...estados.map((estado) {
-                final isSelected = _pedidoActual.estado == estado;
+              ...prioridades.map((prioridad) {
+                final isSelected = _pedidoActual.prioridad == prioridad;
+                final colorPrioridad = _getPrioridadColor(prioridad);
+                
                 return ListTile(
                   leading: Radio<String>(
-                    value: estado,
-                    groupValue: _pedidoActual.estado,
-                    activeColor: const Color(0xff6D3EFF),
+                    value: prioridad,
+                    groupValue: _pedidoActual.prioridad,
+                    activeColor: colorPrioridad,
                     onChanged: (value) {
                       if (value != null) {
-                        _actualizarEstado(value);
+                        _actualizarPrioridad(value);
                         Navigator.pop(context);
                       }
                     },
                   ),
-                  title: Text(
-                    estado,
-                    style: TextStyle(
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: isSelected
-                          ? const Color(0xff6D3EFF)
-                          : const Color(0xff102A43),
-                    ),
-                  ),
-                  trailing: isSelected
-                      ? const Icon(Icons.check_circle, color: Color(0xff6D3EFF))
-                      : null,
-                  onTap: () {
-                    _actualizarEstado(estado);
-                    //Navigator.pop(context); <<<<<<<<<<<<<<-----------------------
-                  },
-                );
-              }).toList(),
-              const SizedBox(height: 10),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _actualizarEstado(String nuevoEstado) async {
-    print('Actualizando pedido ID: ${_pedidoActual.id} → $nuevoEstado');
-    if (nuevoEstado == _pedidoActual.estado) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('El estado ya es ese'),
-          backgroundColor: Colors.blue,
-        ),
-      );
-      return;
-    }
-
-    final exito = await _pedidoService.actualizarEstadoPedido(
-      _pedidoActual.id,
-      nuevoEstado,
-    );
-
-    if (!context.mounted) return;
-
-    if (exito) {
-      final pedidoActualizado = _pedidoActual.copyWith(
-        estado: nuevoEstado,
-        fechaActualizacion: DateTime.now(),
-      );
-      setState(() => _pedidoActual = pedidoActualizado);
-      widget.onPedidoActualizado(pedidoActualizado);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Estado actualizado a: $nuevoEstado'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al actualizar estado'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  void _mostrarModalHistorial() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 60,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Historial de Actividad',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: Color(0xff102A43),
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (_pedidoActual.prendas == null ||
-                  _pedidoActual.prendas!.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Column(
+                  title: Row(
                     children: [
-                      Icon(Icons.history, size: 50, color: Colors.grey),
-                      SizedBox(height: 12),
                       Text(
-                        'No hay actividad registrada',
-                        style: TextStyle(color: Colors.grey),
+                        _getPrioridadIcon(prioridad),
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        prioridad,
+                        style: TextStyle(
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? colorPrioridad : const Color(0xff102A43),
+                        ),
                       ),
                     ],
                   ),
-                )
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _pedidoActual.prendas!.length,
-                  itemBuilder: (context, index) {
-                    final prenda = _pedidoActual.prendas![index];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: const Color(
-                                0xff6D3EFF,
-                              ).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.checkroom,
-                              color: Color(0xff6D3EFF),
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  prenda.nombre,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xff102A43),
-                                  ),
-                                ),
-                                Text(
-                                  'Talla: ${prenda.talla ?? 'N/A'} • Estado: ${prenda.estado ?? 'Pendiente'}',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                Text(
-                                  '${prenda.fechaCreacion.day}/${prenda.fechaCreacion.month}/${prenda.fechaCreacion.year}',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade400,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
+                  trailing: isSelected
+                      ? Icon(Icons.check_circle, color: colorPrioridad)
+                      : null,
+                  onTap: () {
+                    _actualizarPrioridad(prioridad);
+                    Navigator.pop(context);
                   },
-                ),
+                );
+              }).toList(),
               const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
@@ -489,6 +386,327 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
         );
       },
     );
+  }
+
+  /// Actualizar prioridad
+  void _actualizarPrioridad(String nuevaPrioridad) async {
+    print('🔄 ===== ACTUALIZANDO PRIORIDAD =====');
+    print('🔄 Pedido ID: ${_pedidoActual.id}');
+    print('🔄 Prioridad actual: ${_pedidoActual.prioridad}');
+    print('🔄 Nueva prioridad: $nuevaPrioridad');
+    
+    if (nuevaPrioridad == _pedidoActual.prioridad) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La prioridad ya es esa'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+      return;
+    }
+
+    final prioridadAnterior = _pedidoActual.prioridad ?? 'Media';
+
+    final exito = await _pedidoService.actualizarPrioridadPedido(
+      _pedidoActual.id,
+      nuevaPrioridad,
+    );
+    print('🔄 Resultado actualización prioridad: $exito');
+
+    if (!context.mounted) return;
+
+    if (exito) {
+      print('📝 Registrando actividad de cambio de prioridad...');
+      final registroExito = await _pedidoService.registrarActividad(
+        pedidoId: _pedidoActual.id,
+        tipoAccion: 'cambio_prioridad',
+        descripcion: 'Prioridad cambiada de $prioridadAnterior a $nuevaPrioridad',
+        valorAnterior: prioridadAnterior,
+        valorNuevo: nuevaPrioridad,
+      );
+      print('📝 Resultado registro actividad: $registroExito');
+
+      final pedidoActualizado = _pedidoActual.copyWith(
+        prioridad: nuevaPrioridad,
+        fechaActualizacion: DateTime.now(),
+      );
+      setState(() {
+        _pedidoActual = pedidoActualizado;
+      });
+      widget.onPedidoActualizado(pedidoActualizado);
+      await _cargarHistorial();
+      print('✅ Historial recargado, cantidad: ${_historial.length}');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Prioridad actualizada a: $nuevaPrioridad'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error al actualizar prioridad'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+    print('🔄 ===== FIN ACTUALIZAR PRIORIDAD =====');
+  }
+
+  Color _getPrioridadColor(String prioridad) {
+    switch (prioridad) {
+      case 'Alta':
+        return const Color(0xFFEF4444);
+      case 'Media':
+        return const Color(0xFFF59E0B);
+      case 'Baja':
+        return const Color(0xFF10B981);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getPrioridadIcon(String prioridad) {
+    switch (prioridad) {
+      case 'Alta':
+        return '🔴';
+      case 'Media':
+        return '🟠';
+      case 'Baja':
+        return '🟢';
+      default:
+        return '⚪';
+    }
+  }
+
+  /// Mostrar historial completo
+  void _mostrarHistorialCompleto() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.8,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Historial de Actividad',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: Color(0xff102A43),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Cliente: ${_pedidoActual.clienteNombre}',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: _cargandoHistorial
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xff6D3EFF),
+                            ),
+                          )
+                        : _historial.isEmpty
+                            ? const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.history,
+                                      size: 60,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 12),
+                                    Text(
+                                      'No hay actividad registrada',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Los cambios de prioridad y pagos\nse registrarán aquí automáticamente',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                controller: scrollController,
+                                itemCount: _historial.length,
+                                itemBuilder: (context, index) {
+                                  final actividad = _historial[index];
+                                  return _buildActividadItem(actividad);
+                                },
+                              ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Construir item de actividad
+  Widget _buildActividadItem(Map<String, dynamic> actividad) {
+    final tipoAccion = actividad['tipo_accion'] as String? ?? '';
+    final descripcion = actividad['descripcion'] as String? ?? '';
+    final fecha = actividad['fecha_creacion'] != null
+        ? DateTime.parse(actividad['fecha_creacion'])
+        : DateTime.now();
+
+    IconData icono;
+    Color color;
+    String emoji;
+
+    switch (tipoAccion) {
+      case 'cambio_prioridad':
+        icono = Icons.trending_up;
+        color = const Color(0xFF8B5CF6);
+        emoji = '🔄';
+        break;
+      case 'pago':
+        icono = Icons.attach_money;
+        color = const Color(0xFF10B981);
+        emoji = '💰';
+        break;
+      case 'cambio_estado':
+        icono = Icons.sync;
+        color = const Color(0xFF3B82F6);
+        emoji = '📋';
+        break;
+      default:
+        icono = Icons.info;
+        color = Colors.grey;
+        emoji = '📌';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.15),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Text(
+                emoji,
+                style: const TextStyle(fontSize: 18),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  descripcion,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: Color(0xff102A43),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _formatearFecha(fecha),
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 11,
+                  ),
+                ),
+                if (actividad['valor_anterior'] != null ||
+                    actividad['valor_nuevo'] != null)
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${actividad['valor_anterior'] ?? ''} → ${actividad['valor_nuevo'] ?? ''}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios,
+            size: 14,
+            color: Colors.grey.shade400,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatearFecha(DateTime fecha) {
+    final ahora = DateTime.now();
+    final diferencia = ahora.difference(fecha);
+
+    if (diferencia.inMinutes < 1) {
+      return 'Hace un momento';
+    } else if (diferencia.inMinutes < 60) {
+      return 'Hace ${diferencia.inMinutes} min';
+    } else if (diferencia.inHours < 24) {
+      return 'Hace ${diferencia.inHours} h';
+    } else if (diferencia.inDays < 7) {
+      return 'Hace ${diferencia.inDays} d';
+    } else {
+      return '${fecha.day}/${fecha.month}/${fecha.year} ${fecha.hour.toString().padLeft(2, '0')}:${fecha.minute.toString().padLeft(2, '0')}';
+    }
   }
 
   Widget tarjetaInfo({
@@ -554,6 +772,9 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
     final String qrData =
         'tallercostura://pedido/${pedido.id}?cliente=$clienteEncoded&entrega=$entregaFormateada';
 
+    final colorPrioridad = _getPrioridadColor(pedido.prioridad ?? 'Media');
+    final iconPrioridad = _getPrioridadIcon(pedido.prioridad ?? 'Media');
+
     return Scaffold(
       backgroundColor: const Color(0xffF8FAFC),
       appBar: AppBar(
@@ -568,6 +789,13 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
           ),
         ),
         centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Color(0xff6D3EFF)),
+            onPressed: _cargarHistorial,
+            tooltip: 'Recargar historial',
+          ),
+        ],
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
@@ -610,14 +838,20 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _mostrarModalEstado,
-                  icon: const Icon(Icons.sync),
-                  label: const Text(
-                    "Estado",
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                  onPressed: _mostrarModalPrioridad,
+                  icon: Text(
+                    iconPrioridad,
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  label: Text(
+                    pedido.prioridad ?? 'Media',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: colorPrioridad,
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.grey.shade300),
+                    side: BorderSide(color: colorPrioridad.withValues(alpha: 0.3)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -656,18 +890,27 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: _getEstadoColor(
-                        pedido.estado,
-                      ).withValues(alpha: 0.12),
+                      color: colorPrioridad.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: colorPrioridad.withValues(alpha: 0.3)),
                     ),
-                    child: Text(
-                      pedido.estado.toUpperCase(),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: _getEstadoColor(pedido.estado),
-                        fontSize: 13,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          iconPrioridad,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'PRIORIDAD ${pedido.prioridad?.toUpperCase() ?? 'MEDIA'}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: colorPrioridad,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -692,6 +935,25 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
                       Text(
                         "Entrega: ${pedido.fechaEntrega?.toLocal().toString().substring(0, 10) ?? 'N/A'}",
                         style: const TextStyle(color: Color(0xff64748B)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.trending_up,
+                        size: 14,
+                        color: Color(0xff829AB1),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        "Estado: ${pedido.estado}",
+                        style: const TextStyle(
+                          color: Color(0xff64748B),
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -795,8 +1057,7 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
             const SizedBox(height: 16),
 
             /// MEDIDAS
-            if (pedido.medidas!= null && pedido.medidas!.isNotEmpty)
-            
+            if (pedido.medidas != null && pedido.medidas!.isNotEmpty)
               tarjetaInfo(
                 titulo: "Mediciones",
                 icon: Icons.straighten,
@@ -817,108 +1078,68 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
               ),
             const SizedBox(height: 16),
 
-            /// PRENDAS (Actividad Reciente)
+            /// HISTORIAL DE ACTIVIDAD
             tarjetaInfo(
               titulo: "Actividad Reciente",
               icon: Icons.history,
-              child: (pedido.prendas == null || pedido.prendas!.isEmpty)
+              child: _cargandoHistorial
                   ? const Padding(
                       padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Column(
-                        children: [
-                          Icon(Icons.inbox, size: 40, color: Colors.grey),
-                          SizedBox(height: 8),
-                          Text(
-                            "No hay actividad registrada",
-                            style: TextStyle(color: Colors.grey),
+                      child: Center(
+                        child: SizedBox(
+                          height: 30,
+                          width: 30,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xff6D3EFF),
                           ),
-                        ],
+                        ),
                       ),
                     )
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: pedido.prendas!.length > 3
-                          ? 3
-                          : pedido.prendas!.length,
-                      itemBuilder: (context, index) {
-                        final prenda = pedido.prendas![index];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
+                  : _historial.isEmpty
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Column(
                             children: [
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xff6D3EFF,
-                                  ).withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.checkroom,
-                                  color: Color(0xff6D3EFF),
-                                  size: 16,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      prenda.nombre,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                        color: Color(0xff102A43),
-                                      ),
-                                    ),
-                                    Text(
-                                      'Talla: ${prenda.talla ?? 'N/A'}',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              Icon(Icons.inbox, size: 40, color: Colors.grey),
+                              SizedBox(height: 8),
                               Text(
-                                '${prenda.fechaCreacion.day}/${prenda.fechaCreacion.month}',
+                                "No hay actividad reciente",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                "Cambia prioridad o registra un pago",
                                 style: TextStyle(
-                                  color: Colors.grey.shade400,
-                                  fontSize: 11,
+                                  color: Colors.grey,
+                                  fontSize: 12,
                                 ),
                               ),
                             ],
                           ),
-                        );
-                      },
-                    ),
+                        )
+                      : Column(
+                          children: [
+                            ..._historial.take(3).map((actividad) {
+                              return _buildActividadItem(actividad);
+                            }).toList(),
+                            if (_historial.length > 3)
+                              Center(
+                                child: TextButton(
+                                  onPressed: _mostrarHistorialCompleto,
+                                  child: const Text(
+                                    "Ver historial completo →",
+                                    style: TextStyle(
+                                      color: Color(0xff6D3EFF),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
             ),
             const SizedBox(height: 16),
-
-            /// BOTÓN VER HISTORIAL COMPLETO
-            if (pedido.prendas != null && pedido.prendas!.length > 3)
-              Center(
-                child: TextButton(
-                  onPressed: _mostrarModalHistorial,
-                  child: const Text(
-                    "Ver historial completo →",
-                    style: TextStyle(
-                      color: Color(0xff6D3EFF),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
 
             /// QR CODE
             Screenshot(
@@ -967,15 +1188,12 @@ class _DetallePedidoScreenState extends State<DetallePedidoScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-
-                    // ✅ AQUÍ REEMPLAZAMOS 'data' POR 'qrData'
                     QrImageView(
                       data: qrData,
                       version: QrVersions.auto,
                       size: 200,
                       backgroundColor: Colors.white,
                     ),
-
                     const SizedBox(height: 8),
                     Text(
                       _pedidoActual.id,
