@@ -31,6 +31,9 @@ class RecordatoriosScreen extends StatefulWidget {
 class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
   bool mostrarFormulario = false;
 
+  // ✅ ScrollController para hacer scroll hacia arriba
+  final ScrollController _scrollController = ScrollController();
+
   final TextEditingController tareaController = TextEditingController();
   final TextEditingController clienteController = TextEditingController();
   final TextEditingController horaController = TextEditingController();
@@ -61,6 +64,16 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
         _recordatoriosLocal = List<Recordatorio>.from(widget.recordatorios);
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    tareaController.dispose();
+    clienteController.dispose();
+    horaController.dispose();
+    fechaController.dispose();
+    super.dispose();
   }
 
   String _obtenerNombreMes(int mes) {
@@ -395,6 +408,15 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
     );
   }
 
+  // ✅ Función para hacer scroll hacia arriba
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final todosItems = _obtenerTodosRecordatorios();
@@ -444,6 +466,10 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
               onPressed: () {
                 setState(() {
                   mostrarFormulario = !mostrarFormulario;
+                  // ✅ Si se abre el formulario, hace scroll hacia arriba
+                  if (mostrarFormulario) {
+                    _scrollToTop();
+                  }
                   if (!mostrarFormulario) {
                     tareaController.clear();
                     clienteController.clear();
@@ -464,6 +490,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
         ],
       ),
       body: SingleChildScrollView(
+        controller: _scrollController, // ✅ Controller para scroll
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
