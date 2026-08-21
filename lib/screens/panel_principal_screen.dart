@@ -452,7 +452,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
               );
             }
           },
-          filtroInicial: 'Todos',
+          filtroInicial: prioridad,
           estantes: _estantes,
           onGuardarPedido: _guardarPedido,
           onRefresh: () {
@@ -534,14 +534,14 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                     children: [
                       Stack(
                         children: [
-                          IconButton(
+                          /*IconButton(
                             icon: const Icon(
                               Icons.notifications_none,
                               size: 28,
                             ),
                             onPressed: () {},
-                          ),
-                          Positioned(
+                          ),*/
+                          /*Positioned(
                             right: 10,
                             top: 10,
                             child: Container(
@@ -552,11 +552,11 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                                 shape: BoxShape.circle,
                               ),
                             ),
-                          ),
+                          ),*/
                         ],
                       ),
                       const SizedBox(width: 8),
-                      IconButton(
+                      /*IconButton(
                         icon: const Icon(Icons.settings_outlined, size: 28),
                         color: const Color(0xff64748B),
                         onPressed: () {
@@ -567,7 +567,7 @@ class _PanelPrincipalScreenState extends State<PanelPrincipalScreen> {
                             ),
                           );
                         },
-                      ),
+                      ),*/
                     ],
                   ),
                 ],

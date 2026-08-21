@@ -40,7 +40,8 @@ class _PedidosScreenState extends State<PedidosScreen> {
   @override
   void initState() {
     super.initState();
-    selectedPriorityFilter = 'Todos';
+    selectedPriorityFilter = widget.filtroInicial ?? 'Todos';
+    _localPedidos = List.from(widget.pedidos);
     _cargarPedidosDesdeSupabase();
   }
 

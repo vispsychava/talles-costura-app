@@ -616,92 +616,7 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
               ),
               const SizedBox(height: 20),
 
-              /// UBICACIÓN EN TALLER
-              _seccionCard(
-                titulo: "Ubicación en Taller",
-                icon: Icons.location_on_outlined,
-                child: Column(
-                  children: [
-                    if (estantesDisponibles.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.red.shade200),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.warning, color: Colors.red),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                "No hay estantes disponibles.",
-                                style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.w500),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      DropdownButtonFormField<String>(
-                        value: estanteAsignado,
-                        decoration: _input("Asignación de Estante"),
-                        style: const TextStyle(
-                            fontSize: 16, color: Color(0xff102A43)),
-                        items: estantesDisponibles.map((estante) {
-                          final remaining =
-                              estante.capacidad - estante.ocupados;
-                          return DropdownMenuItem(
-                            value: estante.id,
-                            child: Text(
-                              "${estante.id} (${estante.ocupados}/${estante.capacidad}) - $remaining disponibles",
-                              style: const TextStyle(
-                                  fontSize: 15, color: Color(0xff102A43)),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() => estanteAsignado = value!);
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Selecciona un estante";
-                          }
-                          return null;
-                        },
-                      ),
-                    const SizedBox(height: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Prioridad del Trabajo",
-                          style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 14),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            _opcionPrioridad("Baja", Icons.arrow_downward),
-                            const SizedBox(width: 16),
-                            _opcionPrioridad("Media", Icons.remove),
-                            const SizedBox(width: 16),
-                            _opcionPrioridad("Alta", Icons.arrow_upward),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              /// DETALLES DE LA PRENDA
+               /// DETALLES DE LA PRENDA
               _seccionCard(
                 titulo: "Detalles de la Prenda",
                 icon: Icons.checkroom,
@@ -851,11 +766,96 @@ class _NuevoPedidoScreenState extends State<NuevoPedidoScreen> {
                           fontSize: 16, color: Color(0xff102A43)),
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
+                    /*TextFormField(
                       controller: tallaController,
                       decoration: _input("Talla / Medidas Clave"),
                       style: const TextStyle(
                           fontSize: 16, color: Color(0xff102A43)),
+                    ),*/
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              /// UBICACIÓN EN TALLER
+              _seccionCard(
+                titulo: "Ubicación de estante",
+                icon: Icons.location_on_outlined,
+                child: Column(
+                  children: [
+                    if (estantesDisponibles.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.warning, color: Colors.red),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                "No hay estantes disponibles.",
+                                style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      DropdownButtonFormField<String>(
+                        value: estanteAsignado,
+                        decoration: _input("Asignación de Estante"),
+                        style: const TextStyle(
+                            fontSize: 16, color: Color(0xff102A43)),
+                        items: estantesDisponibles.map((estante) {
+                          final remaining =
+                              estante.capacidad - estante.ocupados;
+                          return DropdownMenuItem(
+                            value: estante.id,
+                            child: Text(
+                              "${estante.id} (${estante.ocupados}/${estante.capacidad}) - $remaining disponibles",
+                              style: const TextStyle(
+                                  fontSize: 15, color: Color(0xff102A43)),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() => estanteAsignado = value!);
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return "Selecciona un estante";
+                          }
+                          return null;
+                        },
+                      ),
+                    const SizedBox(height: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Prioridad del Trabajo",
+                          style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _opcionPrioridad("Baja", Icons.arrow_downward),
+                            const SizedBox(width: 16),
+                            _opcionPrioridad("Media", Icons.remove),
+                            const SizedBox(width: 16),
+                            _opcionPrioridad("Alta", Icons.arrow_upward),
+                          ],
+                        ),
+                      ],
                     ),
                   ],
                 ),
