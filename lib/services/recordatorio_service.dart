@@ -73,15 +73,15 @@ if (defaultTargetPlatform == TargetPlatform.android) {
     required DateTime fechaEntrega,
   }) async {
     final now = DateTime.now();
-
-    // 🔔 1 día antes a las 9:00 AM
+ 
+    // 🔔 1 día antes, a las 9:00 AM
     final unDiaAntes = DateTime(
       fechaEntrega.year,
       fechaEntrega.month,
       fechaEntrega.day,
       9, 0,
     ).subtract(const Duration(days: 1));
-
+ 
     if (unDiaAntes.isAfter(now)) {
       await _plugin.zonedSchedule(
         '${pedidoId}_1d'.hashCode,
@@ -94,16 +94,21 @@ if (defaultTargetPlatform == TargetPlatform.android) {
             UILocalNotificationDateInterpretation.absoluteTime,
       );
     }
-
-    // 🔔 3 horas antes de la hora de entrega
-    final tresHorasAntes = fechaEntrega.subtract(const Duration(hours: 3));
-
-    if (tresHorasAntes.isAfter(now)) {
+ 
+    // 🔔 El mismo día de la entrega, a las 8:00 AM
+    final diaDeEntregaA8am = DateTime(
+      fechaEntrega.year,
+      fechaEntrega.month,
+      fechaEntrega.day,
+      8, 0,
+    );
+ 
+    if (diaDeEntregaA8am.isAfter(now)) {
       await _plugin.zonedSchedule(
         '${pedidoId}_3h'.hashCode,
-        '🚨 Entrega en 3 horas',
+        '🚨 Entrega hoy',
         titulo,
-        tz.TZDateTime.from(tresHorasAntes, tz.local),
+        tz.TZDateTime.from(diaDeEntregaA8am, tz.local),
         _notificationDetails(),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:

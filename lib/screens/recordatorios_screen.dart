@@ -8,7 +8,8 @@ import 'detalle_pedido_screen.dart';
 
 class RecordatoriosScreen extends StatefulWidget {
   final List<Recordatorio> recordatorios;
-  final List<Pedido> pedidos;final Future<void> Function(String, String, DateTime) onAgregarRecordatorio;
+  final List<Pedido> pedidos;
+  final Future<void> Function(String, String, DateTime) onAgregarRecordatorio;
   final Function(String) onCompletarRecordatorio;
   final List<Estante> estantes;
   final Function(Map<String, dynamic>) onGuardarPedido;
@@ -36,6 +37,31 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
   final TextEditingController fechaController = TextEditingController();
 
   DateTime? _fechaSeleccionada;
+
+  // ─── Copia local de los recordatorios ─────────────────────────────────
+  // Esto permite que la pantalla se refresque inmediatamente al crear o
+  // completar un recordatorio, sin depender de que el widget padre
+  // reconstruya este screen con datos nuevos.
+  late List<Recordatorio> _recordatoriosLocal;
+
+  @override
+  void initState() {
+    super.initState();
+    _recordatoriosLocal = List<Recordatorio>.from(widget.recordatorios);
+  }
+
+  @override
+  void didUpdateWidget(covariant RecordatoriosScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Si el padre trae una lista distinta (por ejemplo se agregó o eliminó
+    // un recordatorio desde otra pantalla), resincronizamos.
+    if (widget.recordatorios.length != oldWidget.recordatorios.length ||
+        !identical(widget.recordatorios, oldWidget.recordatorios)) {
+      setState(() {
+        _recordatoriosLocal = List<Recordatorio>.from(widget.recordatorios);
+      });
+    }
+  }
 
   String _obtenerNombreMes(int mes) {
     const meses = [
@@ -71,11 +97,11 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
   List<Recordatorio> _obtenerTodosRecordatorios() {
     final List<Recordatorio> todosItems = [];
 
-    todosItems.addAll(widget.recordatorios);
+    todosItems.addAll(_recordatoriosLocal);
 
     for (var pedido in widget.pedidos) {
       if (pedido.estado != "Entregado") {
-        final existe = widget.recordatorios.any((r) =>
+        final existe = _recordatoriosLocal.any((r) =>
             r.titulo == pedido.titulo && r.pedidoId == pedido.id);
 
         if (!existe) {
@@ -122,39 +148,35 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
       return;
     }
 
-   await widget.onAgregarRecordatorio(
-    tareaController.text,
-    clienteController.text,
-    _fechaSeleccionada!,
-  );
+    final tituloNuevo = tareaController.text.trim();
+    final clienteNuevo = clienteController.text.trim();
+    final fechaNueva = _fechaSeleccionada!;
 
-  tareaController.clear();
-  clienteController.clear();
-  horaController.clear();
-  fechaController.clear();
-  _fechaSeleccionada = null;
+    await widget.onAgregarRecordatorio(
+      tituloNuevo,
+      clienteNuevo,
+      fechaNueva,
+    );
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  setState(() {
-    mostrarFormulario = false;
-  });
+    // Lo agregamos de inmediato a la copia local para que se vea sin
+    // tener que salir y volver a entrar a la pantalla.
+    final nuevoRecordatorio = Recordatorio(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      titulo: tituloNuevo,
+      pedidoId: null,
+      clienteNombre: clienteNuevo,
+      descripcion: '',
+      fechaRecordatorio: fechaNueva,
+      completado: false,
+      fechaCreacion: DateTime.now(),
+    );
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('¡Recordatorio creado con éxito!'),
-      backgroundColor: Colors.green,
-    ),
-  );
-  final nuevoRecordatorio = Recordatorio(
-    id: DateTime.now().millisecondsSinceEpoch.toString(),
-    titulo: tareaController.text,
-    pedidoId: null,
-    clienteNombre: clienteController.text,
-    fechaRecordatorio: _fechaSeleccionada!,
-    completado: false,
-    fechaCreacion: DateTime.now(),
-  );
+    setState(() {
+      _recordatoriosLocal.add(nuevoRecordatorio);
+      mostrarFormulario = false;
+    });
 
     tareaController.clear();
     clienteController.clear();
@@ -162,16 +184,33 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
     fechaController.clear();
     _fechaSeleccionada = null;
 
-    setState(() {
-      mostrarFormulario = false;
-    });
-
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('¡Recordatorio creado con éxito!'),
         backgroundColor: Colors.green,
       ),
     );
+  }
+
+  // ─── Marca como completado, en el padre y en la copia local ──────────
+  void _completarRecordatorio(String id) {
+    widget.onCompletarRecordatorio(id);
+    setState(() {
+      final index = _recordatoriosLocal.indexWhere((r) => r.id == id);
+      if (index != -1) {
+        final r = _recordatoriosLocal[index];
+        _recordatoriosLocal[index] = Recordatorio(
+          id: r.id,
+          pedidoId: r.pedidoId,
+          clienteNombre: r.clienteNombre,
+          titulo: r.titulo,
+          descripcion: r.descripcion,
+          fechaRecordatorio: r.fechaRecordatorio,
+          completado: true,
+          fechaCreacion: r.fechaCreacion,
+        );
+      }
+    });
   }
 
   void _navegarANuevoPedido() {
@@ -214,6 +253,146 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
     if (fechaOnly == today) return Colors.red;
     if (fechaOnly == tomorrow) return Colors.orange;
     return const Color(0xff6D3EFF);
+  }
+
+  // ─── Ficha de detalle de un recordatorio manual ───────────────────────
+  void _mostrarDetalleRecordatorio(Recordatorio r) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (bottomSheetContext) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xff6D3EFF).withOpacity(.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.event_note, color: Color(0xff6D3EFF)),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      r.titulo,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Color(0xff102A43),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _filaDetalle(
+                Icons.person,
+                'Cliente',
+                (r.clienteNombre == null || r.clienteNombre!.isEmpty)
+                    ? 'Sin especificar'
+                    : r.clienteNombre!,
+              ),
+              const SizedBox(height: 12),
+              _filaDetalle(
+                Icons.calendar_today,
+                'Fecha de entrega',
+                _formatearFecha(r.fechaRecordatorio),
+              ),
+              if (r.descripcion != null && r.descripcion!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _filaDetalle(Icons.notes, 'Descripción', r.descripcion!),
+              ],
+              const SizedBox(height: 24),
+              if (!r.completado)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff6D3EFF),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () {
+                      _completarRecordatorio(r.id);
+                      Navigator.pop(bottomSheetContext);
+                    },
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Marcar como completado'),
+                  ),
+                )
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      '✓ Completado',
+                      style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _filaDetalle(IconData icon, String label, String valor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: const Color(0xff829AB1)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 12, color: Color(0xff829AB1))),
+              const SizedBox(height: 2),
+              Text(
+                valor,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: Color(0xff102A43),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -522,7 +701,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
         const SizedBox(height: 4),
         ...recordatorios.map(
           (r) {
-            final esPedido = r.titulo.contains('');
+            final esPedido = r.titulo.contains('📦');
 
             return InkWell(
               onTap: () {
@@ -530,9 +709,11 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
                   final pedidoId = r.pedidoId;
                   _navegarADetallePedido(pedidoId.toString());
                 } else {
-                  if (!r.completado) {
-                    widget.onCompletarRecordatorio(r.id);
-                  }
+                  // Antes esto marcaba como completado directamente.
+                  // Ahora primero muestra la ficha con la info del
+                  // recordatorio (título, cliente, fecha) y desde ahí
+                  // se puede completar de forma explícita.
+                  _mostrarDetalleRecordatorio(r);
                 }
               },
               borderRadius: BorderRadius.circular(16),
@@ -620,7 +801,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
                     if (!r.completado && !esPedido)
                       InkWell(
                         onTap: () {
-                          widget.onCompletarRecordatorio(r.id);
+                          _completarRecordatorio(r.id);
                         },
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
