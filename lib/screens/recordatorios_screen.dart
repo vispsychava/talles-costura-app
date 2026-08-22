@@ -5,6 +5,7 @@ import '../models/pedido.dart';
 import 'nuevo_pedido_screen.dart';
 import '../models/estante.dart';
 import 'detalle_pedido_screen.dart';
+import '../widgets/selectores_personalizados.dart';
 
 class RecordatoriosScreen extends StatefulWidget {
   final List<Recordatorio> recordatorios;
@@ -40,6 +41,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
   final TextEditingController fechaController = TextEditingController();
 
   DateTime? _fechaSeleccionada;
+  TimeOfDay? _horaSeleccionada;
 
   // ─── Copia local de los recordatorios ─────────────────────────────────
   // Esto permite que la pantalla se refresque inmediatamente al crear o
@@ -78,14 +80,32 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
 
   String _obtenerNombreMes(int mes) {
     const meses = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
     ];
     return meses[mes - 1];
   }
 
   String _formatearFecha(DateTime fecha) {
-    const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const diasSemana = [
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+      'Domingo',
+    ];
     return '${diasSemana[fecha.weekday - 1]}, ${fecha.day} de ${_obtenerNombreMes(fecha.month)}';
   }
 
@@ -114,27 +134,34 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
 
     for (var pedido in widget.pedidos) {
       if (pedido.estado != "Entregado") {
-        final existe = _recordatoriosLocal.any((r) =>
-            r.titulo == pedido.titulo && r.pedidoId == pedido.id);
+        final existe = _recordatoriosLocal.any(
+          (r) => r.titulo == pedido.titulo && r.pedidoId == pedido.id,
+        );
 
         if (!existe) {
-          final fechaEntrega = pedido.fechaEntrega ?? DateTime.now().add(const Duration(days: 7));
+          final fechaEntrega =
+              pedido.fechaEntrega ??
+              DateTime.now().add(const Duration(days: 7));
 
-          todosItems.add(Recordatorio(
-            id: 'pedido-${pedido.id}',
-            pedidoId: null,
-            clienteNombre: pedido.clienteNombre,
-            titulo: '📦 ${pedido.titulo}',
-            descripcion: 'Pedido #${pedido.id}',
-            fechaRecordatorio: fechaEntrega,
-            completado: false,
-            fechaCreacion: DateTime.now(),
-          ));
+          todosItems.add(
+            Recordatorio(
+              id: 'pedido-${pedido.id}',
+              pedidoId: null,
+              clienteNombre: pedido.clienteNombre,
+              titulo: '📦 ${pedido.titulo}',
+              descripcion: 'Pedido #${pedido.id}',
+              fechaRecordatorio: fechaEntrega,
+              completado: false,
+              fechaCreacion: DateTime.now(),
+            ),
+          );
         }
       }
     }
 
-    todosItems.sort((a, b) => a.fechaRecordatorio.compareTo(b.fechaRecordatorio));
+    todosItems.sort(
+      (a, b) => a.fechaRecordatorio.compareTo(b.fechaRecordatorio),
+    );
 
     return todosItems;
   }
@@ -163,13 +190,21 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
 
     final tituloNuevo = tareaController.text.trim();
     final clienteNuevo = clienteController.text.trim();
-    final fechaNueva = _fechaSeleccionada!;
 
-    await widget.onAgregarRecordatorio(
-      tituloNuevo,
-      clienteNuevo,
-      fechaNueva,
-    );
+    // ✅ Si el usuario eligió una hora, la combinamos con la fecha
+    // seleccionada para que el recordatorio tenga fecha y hora exactas.
+    DateTime fechaNueva = _fechaSeleccionada!;
+    if (_horaSeleccionada != null) {
+      fechaNueva = DateTime(
+        fechaNueva.year,
+        fechaNueva.month,
+        fechaNueva.day,
+        _horaSeleccionada!.hour,
+        _horaSeleccionada!.minute,
+      );
+    }
+
+    await widget.onAgregarRecordatorio(tituloNuevo, clienteNuevo, fechaNueva);
 
     if (!mounted) return;
 
@@ -196,6 +231,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
     horaController.clear();
     fechaController.clear();
     _fechaSeleccionada = null;
+    _horaSeleccionada = null;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -265,7 +301,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
 
     if (fechaOnly == today) return Colors.red;
     if (fechaOnly == tomorrow) return Colors.orange;
-    return const Color(0xff6D3EFF);
+    return kPrimaryColor;
   }
 
   // ─── Ficha de detalle de un recordatorio manual ───────────────────────
@@ -302,10 +338,10 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xff6D3EFF).withOpacity(.12),
+                      color: kPrimaryColor.withOpacity(.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.event_note, color: Color(0xff6D3EFF)),
+                    child: const Icon(Icons.event_note, color: kPrimaryColor),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -334,6 +370,12 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
                 'Fecha de entrega',
                 _formatearFecha(r.fechaRecordatorio),
               ),
+              const SizedBox(height: 12),
+              _filaDetalle(
+                Icons.access_time,
+                'Hora',
+                TimeOfDay.fromDateTime(r.fechaRecordatorio).format(context),
+              ),
               if (r.descripcion != null && r.descripcion!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 _filaDetalle(Icons.notes, 'Descripción', r.descripcion!),
@@ -344,7 +386,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xff6D3EFF),
+                      backgroundColor: kPrimaryColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -370,7 +412,10 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
                   child: const Center(
                     child: Text(
                       '✓ Completado',
-                      style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -391,7 +436,10 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: Color(0xff829AB1))),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 12, color: Color(0xff829AB1)),
+              ),
               const SizedBox(height: 2),
               Text(
                 valor,
@@ -452,10 +500,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
             ),
             Text(
               'Gestiona tu agenda de costura',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xff64748B),
-              ),
+              style: TextStyle(fontSize: 14, color: Color(0xff64748B)),
             ),
           ],
         ),
@@ -476,15 +521,12 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
                     horaController.clear();
                     fechaController.clear();
                     _fechaSeleccionada = null;
+                    _horaSeleccionada = null;
                   }
                 });
               },
-              backgroundColor: const Color(0xff6D3EFF),
-              child: const Icon(
-                Icons.add,
-                color: Colors.white,
-                size: 28,
-              ),
+              backgroundColor: kPrimaryColor,
+              child: const Icon(Icons.add, color: Colors.white, size: 28),
             ),
           ),
         ],
@@ -494,120 +536,153 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            /// FORMULARIO PARA AGREGAR
+            /// FORMULARIO PARA AGREGAR (mismo estilo que "Nuevo Pedido")
             if (mostrarFormulario)
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Nuevo Recordatorio',
-                          style: TextStyle(
-                            color: Color(0xff6D3EFF),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
+              seccionCard(
+                titulo: 'Nuevo Recordatorio',
+                icon: Icons.add_task,
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: tareaController,
+                      decoration: inputDecoration(
+                        'Descripción',
+                        icon: Icons.task_outlined,
                       ),
-                      const SizedBox(height: 15),
-                      TextField(
-                        controller: tareaController,
-                        decoration: const InputDecoration(
-                          labelText: 'Descripción',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.task),
-                        ),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xff102A43),
                       ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: clienteController,
-                        decoration: const InputDecoration(
-                          labelText: 'Cliente',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.person),
-                        ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: clienteController,
+                      decoration: inputDecoration(
+                        'Cliente',
+                        icon: Icons.person_outline,
                       ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: horaController,
-                        decoration: const InputDecoration(
-                          labelText: 'Hora (ej: 16:00)',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.access_time),
-                        ),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xff102A43),
                       ),
-                      const SizedBox(height: 12),
-                      InkWell(
-                        onTap: () async {
-                          final date = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 365),
-                            ),
-                          );
-                          if (date != null) {
-                            setState(() {
-                              _fechaSeleccionada = date;
-                              fechaController.text = _formatearFecha(date);
-                            });
-                          }
-                        },
-                        child: IgnorePointer(
-                          child: TextField(
-                            controller: fechaController,
-                            decoration: const InputDecoration(
-                              labelText: 'Fecha de Entrega',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.calendar_today),
-                              suffixIcon: Icon(Icons.arrow_drop_down),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              onPressed: () {
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ─── Selector de hora tipo reloj ───────────────
+                        Expanded(
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () async {
+                              final hora = await mostrarSelectorHora(
+                                context,
+                                horaInicial:
+                                    _horaSeleccionada ?? TimeOfDay.now(),
+                              );
+                              if (hora != null) {
                                 setState(() {
-                                  mostrarFormulario = false;
-                                  tareaController.clear();
-                                  clienteController.clear();
-                                  horaController.clear();
-                                  fechaController.clear();
-                                  _fechaSeleccionada = null;
+                                  _horaSeleccionada = hora;
+                                  horaController.text = hora.format(context);
                                 });
-                              },
-                              child: const Text('Cancelar'),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xff6D3EFF),
-                                foregroundColor: Colors.white,
+                              }
+                            },
+                            child: IgnorePointer(
+                              child: TextField(
+                                controller: horaController,
+                                decoration: inputDecoration(
+                                  'Hora',
+                                  icon: Icons.access_time,
+                                  suffixIcon: const Icon(Icons.arrow_drop_down),
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Color(0xff102A43),
+                                ),
                               ),
-                              onPressed: enviarRecordatorio,
-                              child: const Text('Añadir'),
                             ),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                        const SizedBox(width: 12),
+                        // ─── Selector de fecha (calendario personalizado) ─
+                        Expanded(
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () async {
+                              final date = await mostrarSelectorFecha(
+                                context,
+                                fechaInicial:
+                                    _fechaSeleccionada ?? DateTime.now(),
+                              );
+                              if (date != null) {
+                                setState(() {
+                                  _fechaSeleccionada = date;
+                                  fechaController.text = _formatearFecha(date);
+                                });
+                              }
+                            },
+                            child: IgnorePointer(
+                              child: TextField(
+                                controller: fechaController,
+                                decoration: inputDecoration(
+                                  'Fecha',
+                                  icon: Icons.calendar_today,
+                                  suffixIcon: const Icon(Icons.arrow_drop_down),
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xff102A43),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: Colors.grey.shade300),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                mostrarFormulario = false;
+                                tareaController.clear();
+                                clienteController.clear();
+                                horaController.clear();
+                                fechaController.clear();
+                                _fechaSeleccionada = null;
+                                _horaSeleccionada = null;
+                              });
+                            },
+                            child: const Text('Cancelar'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kPrimaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: enviarRecordatorio,
+                            child: const Text('Añadir'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
 
@@ -619,11 +694,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
                 padding: const EdgeInsets.only(top: 80),
                 child: Column(
                   children: const [
-                    Icon(
-                      Icons.inbox,
-                      size: 70,
-                      color: Colors.grey,
-                    ),
+                    Icon(Icons.inbox, size: 70, color: Colors.grey),
                     SizedBox(height: 15),
                     Text(
                       'No hay entregas pendientes',
@@ -636,9 +707,7 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
                     SizedBox(height: 5),
                     Text(
                       '¡Buen trabajo!',
-                      style: TextStyle(
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(color: Colors.grey),
                     ),
                   ],
                 ),
@@ -652,7 +721,9 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
                     _buildGroup(
                       _formatearFecha(entry.value.first.fechaRecordatorio),
                       entry.value,
-                      _obtenerColorPorFecha(entry.value.first.fechaRecordatorio),
+                      _obtenerColorPorFecha(
+                        entry.value.first.fechaRecordatorio,
+                      ),
                     ),
                 ],
               ),
@@ -726,136 +797,145 @@ class _RecordatoriosScreenState extends State<RecordatoriosScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        ...recordatorios.map(
-          (r) {
-            final esPedido = r.titulo.contains('📦');
+        ...recordatorios.map((r) {
+          final esPedido = r.titulo.contains('📦');
 
-            return InkWell(
-              onTap: () {
-                if (esPedido) {
-                  final pedidoId = r.pedidoId;
-                  _navegarADetallePedido(pedidoId.toString());
-                } else {
-                  // Antes esto marcaba como completado directamente.
-                  // Ahora primero muestra la ficha con la info del
-                  // recordatorio (título, cliente, fecha) y desde ahí
-                  // se puede completar de forma explícita.
-                  _mostrarDetalleRecordatorio(r);
-                }
-              },
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(.04),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: r.completado ? Colors.green.shade200 : Colors.grey.shade100,
-                    width: 1.5,
+          return InkWell(
+            onTap: () {
+              if (esPedido) {
+                final pedidoId = r.pedidoId;
+                _navegarADetallePedido(pedidoId.toString());
+              } else {
+                // Antes esto marcaba como completado directamente.
+                // Ahora primero muestra la ficha con la info del
+                // recordatorio (título, cliente, fecha, hora) y desde
+                // ahí se puede completar de forma explícita.
+                _mostrarDetalleRecordatorio(r);
+              }
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: r.completado
-                            ? Colors.green.withOpacity(.12)
-                            : color.withOpacity(.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        r.completado ? Icons.check :
-                            (esPedido ? Icons.shopping_bag : Icons.event_note),
-                        color: r.completado ? Colors.green : color,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            r.titulo,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              decoration: r.completado ? TextDecoration.lineThrough : null,
-                              color: r.completado ? Colors.grey : const Color(0xff102A43),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Cliente: ${r.clienteNombre}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: r.completado ? Colors.grey.shade500 : const Color(0xff64748B),
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              Text(
-                                _formatearFechaCorta(r.fechaRecordatorio),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: r.completado ? Colors.grey.shade400 : const Color(0xff829AB1),
-                                ),
-                              ),
-                              if (esPedido && !r.completado)
-                                const Padding(
-                                  padding: EdgeInsets.only(left: 8),
-                                  child: Icon(
-                                    Icons.chevron_right,
-                                    size: 16,
-                                    color: Color(0xff829AB1),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (!r.completado && !esPedido)
-                      InkWell(
-                        onTap: () {
-                          _completarRecordatorio(r.id);
-                        },
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(.08),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Icon(
-                            Icons.check_circle_outline,
-                            color: Colors.green,
-                            size: 28,
-                          ),
-                        ),
-                      ),
-                    if (r.completado)
-                      const Icon(
-                        Icons.check_circle,
-                        color: Colors.green,
-                        size: 28,
-                      ),
-                  ],
+                ],
+                border: Border.all(
+                  color: r.completado
+                      ? Colors.green.shade200
+                      : Colors.grey.shade100,
+                  width: 1.5,
                 ),
               ),
-            );
-          },
-        ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: r.completado
+                          ? Colors.green.withOpacity(.12)
+                          : color.withOpacity(.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      r.completado
+                          ? Icons.check
+                          : (esPedido ? Icons.shopping_bag : Icons.event_note),
+                      color: r.completado ? Colors.green : color,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          r.titulo,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            decoration: r.completado
+                                ? TextDecoration.lineThrough
+                                : null,
+                            color: r.completado
+                                ? Colors.grey
+                                : const Color(0xff102A43),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Cliente: ${r.clienteNombre}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: r.completado
+                                ? Colors.grey.shade500
+                                : const Color(0xff64748B),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              '${_formatearFechaCorta(r.fechaRecordatorio)} · ${TimeOfDay.fromDateTime(r.fechaRecordatorio).format(context)}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: r.completado
+                                    ? Colors.grey.shade400
+                                    : const Color(0xff829AB1),
+                              ),
+                            ),
+                            if (esPedido && !r.completado)
+                              const Padding(
+                                padding: EdgeInsets.only(left: 8),
+                                child: Icon(
+                                  Icons.chevron_right,
+                                  size: 16,
+                                  color: Color(0xff829AB1),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!r.completado && !esPedido)
+                    InkWell(
+                      onTap: () {
+                        _completarRecordatorio(r.id);
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(.08),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(
+                          Icons.check_circle_outline,
+                          color: Colors.green,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  if (r.completado)
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                      size: 28,
+                    ),
+                ],
+              ),
+            ),
+          );
+        }),
         const SizedBox(height: 4),
       ],
     );
