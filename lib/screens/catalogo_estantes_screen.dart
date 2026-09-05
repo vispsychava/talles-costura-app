@@ -269,6 +269,56 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
     );
   }
 
+
+    Future<void> _confirmarEliminarEstante(Estante estante) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar estante'),
+        content: Text(
+          '¿Seguro que deseas eliminar el estante "${estante.nombre}"?\n\nEsta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
+    final resultado = await _supabaseService.eliminarEstante(estante.id);
+
+    if (!mounted) return;
+
+    if (resultado['exito'] == true) {
+      setState(() {
+        _estantes.removeWhere((e) => e.id == estante.id);
+      });
+      widget.onEstantesActualizados(_estantes);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['mensaje']),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['mensaje']),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Color estadoColor(String estado) {
     switch (estado) {
       case "Disponible":
@@ -460,7 +510,7 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
                                   crossAxisCount: 2,
                                   crossAxisSpacing: 12,
                                   mainAxisSpacing: 12,
-                                  childAspectRatio: 1.05,
+                                  childAspectRatio: 0.85,
                                 ),
                             itemBuilder: (context, index) {
                               final estante = _estantesFiltrados[index];
@@ -564,6 +614,39 @@ class _CatalogoEstantesScreenState extends State<CatalogoEstantesScreen> {
                                         ],
                                       ),
                                       const SizedBox(height: 10),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: OutlinedButton.icon(
+                                          onPressed: () =>
+                                              _confirmarEliminarEstante(estante),
+                                          icon: const Icon(
+                                            Icons.delete_outline,
+                                            size: 14,
+                                            color: Colors.red,
+                                          ),
+                                          label: const Text(
+                                            'Eliminar',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.red,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          style: OutlinedButton.styleFrom(
+                                            side: const BorderSide(
+                                              color: Colors.red,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 4,
+                                            ),
+                                            minimumSize: const Size(0, 28),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),

@@ -386,4 +386,85 @@ static const Map<String, int> idPrendaPorTipo = {
   'saco': 3,
   'ajuste': 3,
 };  
+
+
+
+  Future<bool> eliminarPedido(String pedidoId) async {
+    try {
+      // 1. Obtener id_pedido e id_estante antes de borrar
+      final pedidoResponse = await _supabase
+          .from('pedidos')
+          .select('id_pedido, id_estante')
+          .eq('codigo_pedido', pedidoId)
+          .maybeSingle();
+
+      if (pedidoResponse == null) {
+        print('❌ No se encontró el pedido con código: $pedidoId');
+        return false;
+      }
+
+      final int idPedido = pedidoResponse['id_pedido'];
+      final int? idEstante = pedidoResponse['id_estante'];
+
+      // 2. Borrar medidas asociadas (evita error de foreign key)
+      await _supabase
+          .from('medidas_pedido')
+          .delete()
+          .eq('id_pedido', idPedido);
+
+      // 3. Borrar el pedido
+      await _supabase
+          .from('pedidos')
+          .delete()
+          .eq('id_pedido', idPedido);
+
+      // 4. Recalcular ocupados del estante que quedó libre
+      if (idEstante != null) {
+        await _actualizarOcupadosEstante(idEstante);
+      }
+
+      print('✅ Pedido $pedidoId eliminado correctamente');
+      return true;
+    } catch (e) {
+      print('❌ Error en eliminarPedido: $e');
+      return false;
+    }
+  }
+
+
+
+  Future<Map<String, dynamic>> eliminarEstante(String codigoEstante) async {
+    try {
+      final estanteResponse = await _supabase
+          .from('estantes')
+          .select('id_estante')
+          .eq('codigo', codigoEstante)
+          .maybeSingle();
+
+      if (estanteResponse == null) {
+        return {'exito': false, 'mensaje': 'Estante no encontrado'};
+      }
+      final int idEstante = estanteResponse['id_estante'];
+      final pedidosActivos = await _supabase
+          .from('pedidos')
+          .select('id_pedido')
+          .eq('id_estante', idEstante)
+          .neq('estado_pedido', 'Entregado');
+
+      if ((pedidosActivos as List).isNotEmpty) {
+        return {
+          'exito': false,
+          'mensaje':
+              'No se puede eliminar: tiene ${pedidosActivos.length} pedido(s) activo(s) asignado(s).',
+        };
+      }
+
+      await _supabase.from('estantes').delete().eq('id_estante', idEstante);
+
+      return {'exito': true, 'mensaje': 'Estante eliminado correctamente'};
+    } catch (e) {
+      print('❌ Error en eliminarEstante: $e');
+      return {'exito': false, 'mensaje': 'Error al eliminar el estante'};
+    }
+  }
 }

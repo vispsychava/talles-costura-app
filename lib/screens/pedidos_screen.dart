@@ -81,6 +81,47 @@ class _PedidosScreenState extends State<PedidosScreen> {
     widget.onRefresh();
   }
 
+
+    Future<void> _confirmarEliminarPedido(Pedido pedido) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar pedido'),
+        content: Text(
+          '¿Seguro que deseas eliminar el pedido de ${pedido.clienteNombre}?\n\nEsta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
+    final eliminado = await _supabaseService.eliminarPedido(pedido.id);
+
+    if (!mounted) return;
+
+    if (eliminado) {
+      setState(() {
+        _localPedidos.removeWhere((p) => p.id == pedido.id);
+        _refreshCounter++;
+      });
+      widget.onRefresh();
+      showToast('Pedido eliminado correctamente');
+    } else {
+      showToast('Error al eliminar el pedido');
+    }
+  }
+
   List<Pedido> get filteredPedidos {
     return _localPedidos.where((pedido) {
       final cliente = pedido.clienteNombre.toLowerCase();
@@ -858,6 +899,43 @@ class _PedidosScreenState extends State<PedidosScreen> {
                                               fontWeight: FontWeight.w600,
                                               color: Colors.white,
                                             ),
+                                          ),
+                                        ),
+                                      ),
+                                         InkWell(
+                                        onTap: () =>
+                                            _confirmarEliminarPedido(pedido),
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            border: Border.all(
+                                              color: Colors.red,
+                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: const [
+                                              Icon(
+                                                Icons.delete_outline,
+                                                size: 14,
+                                                color: Colors.red,
+                                              ),
+                                              SizedBox(width: 4),
+                                              Text(
+                                                'Eliminar',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.red,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ),
